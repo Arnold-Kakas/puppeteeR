@@ -3,7 +3,6 @@
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/Arnold-Kakas/puppeteeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Arnold-Kakas/puppeteeR/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/Arnold-Kakas/puppeteeR/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Arnold-Kakas/puppeteeR?branch=main)
 <!-- badges: end -->
 
 **puppeteeR** orchestrates multiple LLM agents into coordinated workflows. Define agents with different roles, providers, and tools - then wire them into a graph where each agent acts on shared state, routes work conditionally, and hands off to the next.
