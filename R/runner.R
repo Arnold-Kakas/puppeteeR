@@ -165,6 +165,34 @@ GraphRunner <- R6::R6Class(
       build_cost_report(private$.agents)
     },
 
+    #' @description Generate a DOT language string for the graph.
+    #' @returns Character string.
+    as_dot = function() {
+      graph_as_dot(self, private$.nodes, private$.edges, private$.conditional_edges)
+    },
+
+    #' @description Generate a Mermaid diagram string.
+    #' @returns Character string.
+    as_mermaid = function() {
+      graph_as_mermaid(self, private$.nodes, private$.edges, private$.conditional_edges)
+    },
+
+    #' @description Render a visualization of the compiled graph.
+    #' @param engine One of `"dot"`, `"visnetwork"`, or `"mermaid"`.
+    visualize = function(engine = c("dot", "visnetwork", "mermaid")) {
+      engine <- rlang::arg_match(engine)
+      visualize_graph(self, engine)
+    },
+
+    #' @description Export the diagram to a file.
+    #' @param path File path. Extension determines format (`.svg` or `.png`).
+    #' @param width Integer. Width in pixels (PNG only).
+    #' @param height Integer. Height in pixels (PNG only).
+    #' @returns Invisibly, `path`.
+    export_diagram = function(path, width = 800L, height = 600L) {
+      export_diagram_impl(self, path, width, height)
+    },
+
     #' @description Print runner summary.
     #' @param ... Ignored.
     print = function(...) {

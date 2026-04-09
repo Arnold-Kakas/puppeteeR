@@ -2,3 +2,12 @@ url: https://arnold-kakas.github.io/puppeteeR/
 template:
   bootstrap: 5
 
+home:
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
+
+navbar:
+  title: puppeteeR
+  logo:
+    image: logo.svg
+    href: index.html

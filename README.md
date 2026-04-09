@@ -1,4 +1,4 @@
-# puppeteeR <img src="man/figures/logo.png" align="right" height="139" />
+# puppeteeR <img src="man/figures/logo.svg" align="right" height="139" />
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)

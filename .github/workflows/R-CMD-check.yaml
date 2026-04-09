@@ -23,6 +23,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_ACTIVE: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -33,13 +34,6 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
-
-      - name: Cache R packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.R_LIBS_USER }}
-          key: check-${{ runner.os }}-r-${{ matrix.config.r }}-${{ hashFiles('DESCRIPTION') }}
-          restore-keys: check-${{ runner.os }}-r-${{ matrix.config.r }}-
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:

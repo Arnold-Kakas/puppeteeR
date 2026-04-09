@@ -16,6 +16,7 @@ jobs:
       cancel-in-progress: true
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      RENV_CONFIG_ACTIVE: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -26,19 +27,10 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Cache R packages
-        uses: actions/cache@v4
+      - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: pkgdown-${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
-          restore-keys: pkgdown-${{ runner.os }}-r-
-
-      - name: Install dependencies
-        run: |
-          install.packages(c("remotes", "pkgdown"))
-          remotes::install_deps(dependencies = TRUE)
-          remotes::install_local(".", force = TRUE)
-        shell: Rscript {0}
+          extra-packages: any::pkgdown, local::.
+          needs: website
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
