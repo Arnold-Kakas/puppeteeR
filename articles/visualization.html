@@ -59,8 +59,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Visualizing Graphs</h1>
+      <img src="../logo.svg" class="logo" alt=""><h1>Visualizing Graphs</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/Arnold-Kakas/puppeteeR/blob/main/vignettes/visualization.Rmd" class="external-link"><code>vignettes/visualization.Rmd</code></a></small>
@@ -178,26 +177,42 @@ key).</p>
 <div class="section level2">
 <h2 id="visualizing-compiled-runners">Visualizing compiled runners<a class="anchor" aria-label="anchor" href="#visualizing-compiled-runners"></a>
 </h2>
-<p>Visualization works on <code>StateGraph</code> objects (before
-<code><a href="../reference/compile.html">compile()</a></code>). To inspect a compiled runner’s structure, keep
-a reference to the graph object:</p>
+<p>All visualization methods (<code>visualize()</code>,
+<code>as_dot()</code>, <code>as_mermaid()</code>,
+<code>export_diagram()</code>) work directly on a compiled
+<code>GraphRunner</code> - no need to keep a separate reference to the
+graph:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"a"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="va">END</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="va">g</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># All of these work on the runner directly</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"dot"</span><span class="op">)</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"visnetwork"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">runner</span><span class="op">$</span><span class="fu">as_mermaid</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">export_diagram</span><span class="op">(</span><span class="st">"graph.png"</span><span class="op">)</span></span></code></pre></div>
+<p>This is especially convenient with the workflow convenience
+constructors:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># g is still available for visualization</span></span>
-<span><span class="va">g</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"dot"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/supervisor_workflow.html">supervisor_workflow</a></span><span class="op">(</span></span>
+<span>  manager <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"manager"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                  instructions <span class="op">=</span> <span class="st">"Delegate to 'writer' or reply 'DONE'."</span><span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>writer <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"dot"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="print-summary">Print summary<a class="anchor" aria-label="anchor" href="#print-summary"></a>
 </h2>
 <p>The <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method gives a quick text summary of node
 and edge counts:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">g</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> StateGraph</span></span>
 <span><span class="co">#&gt;   Nodes (4): <span style="color: #0000BB;">"research"</span>, <span style="color: #0000BB;">"write"</span>, <span style="color: #0000BB;">"review"</span>, and <span style="color: #0000BB;">"revise"</span></span></span>

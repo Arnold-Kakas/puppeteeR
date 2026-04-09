@@ -1,4 +1,4 @@
-# puppeteeR ![](reference/figures/logo.png)
+# puppeteeR
 
 **puppeteeR** orchestrates multiple LLM agents into coordinated
 workflows. Define agents with different roles, providers, and tools -

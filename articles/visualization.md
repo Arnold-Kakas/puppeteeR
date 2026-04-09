@@ -111,21 +111,37 @@ route to support/billing/discard):
 
 ## Visualizing compiled runners
 
-Visualization works on `StateGraph` objects (before
-[`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md)).
-To inspect a compiled runner’s structure, keep a reference to the graph
-object:
+All visualization methods (`visualize()`, `as_dot()`, `as_mermaid()`,
+`export_diagram()`) work directly on a compiled `GraphRunner` - no need
+to keep a separate reference to the graph:
 
 ``` r
-g <- state_graph(schema) |>
+runner <- state_graph(schema) |>
   add_node("a", function(s, cfg) list()) |>
   add_edge(START, "a") |>
-  add_edge("a", END)
+  add_edge("a", END) |>
+  compile()
 
-runner <- g |> compile()
+# All of these work on the runner directly
+runner$visualize("dot")
+runner$visualize("visnetwork")
+cat(runner$as_mermaid())
+runner$export_diagram("graph.png")
+```
 
-# g is still available for visualization
-g$visualize("dot")
+This is especially convenient with the workflow convenience
+constructors:
+
+``` r
+library(ellmer)
+
+runner <- supervisor_workflow(
+  manager = agent("manager", chat_anthropic(),
+                  instructions = "Delegate to 'writer' or reply 'DONE'."),
+  workers = list(writer = agent("writer", chat_anthropic()))
+)
+
+runner$visualize("dot")
 ```
 
 ## Print summary
