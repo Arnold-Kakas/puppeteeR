@@ -12,15 +12,19 @@ add_edge(graph, from, to)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - from:
 
-  Node name or [START](START.md).
+  Node name or
+  [START](https://arnold-kakas.github.io/puppeteeR/reference/START.md).
 
 - to:
 
-  Node name or [END](END.md).
+  Node name or
+  [END](https://arnold-kakas.github.io/puppeteeR/reference/END.md).
 
 ## Value
 

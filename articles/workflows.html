@@ -73,8 +73,8 @@
 patterns. Each returns a compiled <code>GraphRunner</code> ready to
 invoke.</p>
 <div class="section level2">
-<h2 id="sequential_workflow-linear-chain">
-<code>sequential_workflow()</code> — linear chain<a class="anchor" aria-label="anchor" href="#sequential_workflow-linear-chain"></a>
+<h2 id="sequential_workflow---linear-chain">
+<code>sequential_workflow()</code> - linear chain<a class="anchor" aria-label="anchor" href="#sequential_workflow---linear-chain"></a>
 </h2>
 <p>Agents run in order. Each agent receives the previous agent’s
 response as its input.</p>
@@ -118,8 +118,8 @@ so the final state contains the full conversation chain.</p>
 <span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="supervisor_workflow-hub-and-spoke">
-<code>supervisor_workflow()</code> — hub-and-spoke<a class="anchor" aria-label="anchor" href="#supervisor_workflow-hub-and-spoke"></a>
+<h2 id="supervisor_workflow---hub-and-spoke">
+<code>supervisor_workflow()</code> - hub-and-spoke<a class="anchor" aria-label="anchor" href="#supervisor_workflow---hub-and-spoke"></a>
 </h2>
 <p>A manager agent directs work to a pool of worker agents. After each
 worker finishes, control returns to the manager. The manager ends the
@@ -153,9 +153,9 @@ one worker per turn. Ambiguous responses fall through to
 <code>"DONE"</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="debate_workflow-round-robin-with-optional-judge">
-<code>debate_workflow()</code> — round-robin with optional
-judge<a class="anchor" aria-label="anchor" href="#debate_workflow-round-robin-with-optional-judge"></a>
+<h2 id="debate_workflow---round-robin-with-optional-judge">
+<code>debate_workflow()</code> - round-robin with optional
+judge<a class="anchor" aria-label="anchor" href="#debate_workflow---round-robin-with-optional-judge"></a>
 </h2>
 <p>Agents take turns responding to each other in round-robin order.
 Useful for exploring multiple perspectives on a question, stress-testing
@@ -236,8 +236,8 @@ settled. The judge should reply <code>"continue"</code> or
 </tr>
 </tbody>
 </table>
-<p>For anything more complex — handoffs, parallel fans, custom state
-channels — build the graph directly with <code><a href="../reference/state_graph.html">state_graph()</a></code>. See
+<p>For anything more complex - handoffs, parallel fans, custom state
+channels - build the graph directly with <code><a href="../reference/state_graph.html">state_graph()</a></code>. See
 <code><a href="../articles/custom-graphs.html">vignette("custom-graphs")</a></code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

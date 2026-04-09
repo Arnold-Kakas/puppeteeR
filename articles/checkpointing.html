@@ -73,13 +73,13 @@
 execution. This enables:</p>
 <ul>
 <li>
-<strong>Resuming interrupted runs</strong> — restart after a crash
+<strong>Resuming interrupted runs</strong> - restart after a crash
 without re-running completed nodes</li>
 <li>
-<strong>Human-in-the-loop</strong> — pause, inspect, modify state,
+<strong>Human-in-the-loop</strong> - pause, inspect, modify state,
 then resume</li>
 <li>
-<strong>Auditing</strong> — replay state at any step</li>
+<strong>Auditing</strong> - replay state at any step</li>
 </ul>
 <div class="section level2">
 <h2 id="checkpointer-types">Checkpointer types<a class="anchor" aria-label="anchor" href="#checkpointer-types"></a>
@@ -152,7 +152,7 @@ then resume</li>
 <span><span class="co">#&gt; [1] "incremented to 1"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="rds-checkpointer-survives-across-sessions">RDS checkpointer — survives across sessions<a class="anchor" aria-label="anchor" href="#rds-checkpointer-survives-across-sessions"></a>
+<h2 id="rds-checkpointer---survives-across-sessions">RDS checkpointer - survives across sessions<a class="anchor" aria-label="anchor" href="#rds-checkpointer---survives-across-sessions"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>dir <span class="op">=</span> <span class="st">"~/my_checkpoints"</span><span class="op">)</span></span>
@@ -165,16 +165,16 @@ then resume</li>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"step2"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run 1 — say it crashes mid-way</span></span>
+<span><span class="co"># Run 1 - say it crashes mid-way</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run 2 — restart; runner resumes from last saved checkpoint</span></span>
+<span><span class="co"># Run 2 - restart; runner resumes from last saved checkpoint</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Files are written as <code>~/my_checkpoints/job-42/step_1.rds</code>,
 <code>step_2.rds</code>, etc.</p>
 </div>
 <div class="section level2">
-<h2 id="sqlite-checkpointer-multiple-threads">SQLite checkpointer — multiple threads<a class="anchor" aria-label="anchor" href="#sqlite-checkpointer-multiple-threads"></a>
+<h2 id="sqlite-checkpointer---multiple-threads">SQLite checkpointer - multiple threads<a class="anchor" aria-label="anchor" href="#sqlite-checkpointer---multiple-threads"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span><span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
@@ -215,7 +215,7 @@ correct an agent’s output mid-workflow.</p>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">draft</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"check_approval"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># gate node — routes based on human-set `approved` flag</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># gate node - routes based on human-set `approved` flag</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"revise"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">prompt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
@@ -251,7 +251,7 @@ correct an agent’s output mid-workflow.</p>
 <span>  feedback <span class="op">=</span> <span class="st">"Too abstract. Use a concrete analogy."</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 4: resume — runner picks up from the checkpoint</span></span>
+<span><span class="co"># Step 4: resume - runner picks up from the checkpoint</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"review-1"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">get_state</span><span class="op">(</span><span class="st">"review-1"</span><span class="op">)</span><span class="op">$</span><span class="va">draft</span></span></code></pre></div>
 </div>

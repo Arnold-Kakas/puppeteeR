@@ -26,11 +26,14 @@ debate_workflow(agents, max_rounds = 5L, judge = NULL, state_schema = NULL)
 
 - state_schema:
 
-  A [WorkflowState](WorkflowState.md) or `NULL` (uses default).
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  or `NULL` (uses default).
 
 ## Value
 
-A compiled [GraphRunner](GraphRunner.md).
+A compiled
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md).
 
 ## Examples
 

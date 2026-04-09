@@ -3,7 +3,7 @@
 puppeteeR ships three one-liner constructors for common multi-agent
 patterns. Each returns a compiled `GraphRunner` ready to invoke.
 
-## `sequential_workflow()` — linear chain
+## `sequential_workflow()` - linear chain
 
 Agents run in order. Each agent receives the previous agent’s response
 as its input.
@@ -27,9 +27,9 @@ result$get("messages")
 ```
 
 The default state schema has a single `messages` channel with
-[`reducer_append()`](../reference/reducer_append.md). Each agent’s
-response is appended, so the final state contains the full conversation
-chain.
+[`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md).
+Each agent’s response is appended, so the final state contains the full
+conversation chain.
 
 You can supply a custom schema if you need additional channels:
 
@@ -53,7 +53,7 @@ result2 <- runner2$invoke(list(
 ))
 ```
 
-## `supervisor_workflow()` — hub-and-spoke
+## `supervisor_workflow()` - hub-and-spoke
 
 A manager agent directs work to a pool of worker agents. After each
 worker finishes, control returns to the manager. The manager ends the
@@ -89,7 +89,7 @@ turns.
 **Tip**: prompt the manager explicitly to name exactly one worker per
 turn. Ambiguous responses fall through to `"DONE"`.
 
-## `debate_workflow()` — round-robin with optional judge
+## `debate_workflow()` - round-robin with optional judge
 
 Agents take turns responding to each other in round-robin order. Useful
 for exploring multiple perspectives on a question, stress-testing an
@@ -146,13 +146,14 @@ result <- runner$invoke(list(messages = list("Should we adopt AI in healthcare?"
 
 ## Comparison
 
-| Workflow                                                       | When to use                                                  |
-|----------------------------------------------------------------|--------------------------------------------------------------|
-| [`sequential_workflow()`](../reference/sequential_workflow.md) | Fixed pipeline: each step refines the previous output        |
-| [`supervisor_workflow()`](../reference/supervisor_workflow.md) | Dynamic delegation: manager decides which specialist to call |
-| [`debate_workflow()`](../reference/debate_workflow.md)         | Multiple perspectives: agents challenge each other           |
+| Workflow                                                                                             | When to use                                                  |
+|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
+| [`sequential_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.md) | Fixed pipeline: each step refines the previous output        |
+| [`supervisor_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/supervisor_workflow.md) | Dynamic delegation: manager decides which specialist to call |
+| [`debate_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/debate_workflow.md)         | Multiple perspectives: agents challenge each other           |
 
-For anything more complex — handoffs, parallel fans, custom state
-channels — build the graph directly with
-[`state_graph()`](../reference/state_graph.md). See
-[`vignette("custom-graphs")`](../articles/custom-graphs.md).
+For anything more complex - handoffs, parallel fans, custom state
+channels - build the graph directly with
+[`state_graph()`](https://arnold-kakas.github.io/puppeteeR/reference/state_graph.md).
+See
+[`vignette("custom-graphs")`](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md).

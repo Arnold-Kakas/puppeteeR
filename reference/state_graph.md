@@ -12,11 +12,15 @@ state_graph(state_schema)
 
 - state_schema:
 
-  A [WorkflowState](WorkflowState.md) or a named list of channel specs.
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  or a named list of channel specs.
 
 ## Value
 
-A [StateGraph](StateGraph.md) object.
+A
+[StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+object.
 
 ## Examples
 

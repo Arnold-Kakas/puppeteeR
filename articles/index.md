@@ -2,9 +2,15 @@
 
 ### All vignettes
 
-- [Checkpointing and Human-in-the-Loop](checkpointing.md):
-- [Building Custom Multi-Agent Graphs](custom-graphs.md):
-- [Getting Started with puppeteeR](getting-started.md):
-- [Production Use Cases](use-cases.md):
-- [Visualizing Graphs](visualization.md):
-- [Convenience Workflows](workflows.md):
+- [Checkpointing and
+  Human-in-the-Loop](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md):
+- [Building Custom Multi-Agent
+  Graphs](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md):
+- [Getting Started with
+  puppeteeR](https://arnold-kakas.github.io/puppeteeR/articles/getting-started.md):
+- [Production Use
+  Cases](https://arnold-kakas.github.io/puppeteeR/articles/use-cases.md):
+- [Visualizing
+  Graphs](https://arnold-kakas.github.io/puppeteeR/articles/visualization.md):
+- [Convenience
+  Workflows](https://arnold-kakas.github.io/puppeteeR/articles/workflows.md):

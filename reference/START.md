@@ -1,7 +1,8 @@
 # Sentinel: start of graph
 
-Use `START` as the `from` argument of [`add_edge()`](add_edge.md) to
-define the graph entry point.
+Use `START` as the `from` argument of
+[`add_edge()`](https://arnold-kakas.github.io/puppeteeR/reference/add_edge.md)
+to define the graph entry point.
 
 ## Usage
 

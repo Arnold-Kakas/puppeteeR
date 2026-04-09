@@ -16,7 +16,9 @@ sqlite_checkpointer(path)
 
 ## Value
 
-A [SQLiteCheckpointer](SQLiteCheckpointer.md) object.
+A
+[SQLiteCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/SQLiteCheckpointer.md)
+object.
 
 ## Examples
 

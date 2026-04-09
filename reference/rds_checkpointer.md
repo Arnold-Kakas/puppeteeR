@@ -16,7 +16,9 @@ rds_checkpointer(dir)
 
 ## Value
 
-An [RDSCheckpointer](RDSCheckpointer.md) object.
+An
+[RDSCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/RDSCheckpointer.md)
+object.
 
 ## Examples
 

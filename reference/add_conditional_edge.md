@@ -12,7 +12,9 @@ add_conditional_edge(graph, from, routing_fn, route_map)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - from:
 
@@ -24,7 +26,8 @@ add_conditional_edge(graph, from, routing_fn, route_map)
 
 - route_map:
 
-  Named list mapping routing keys to target node names or [END](END.md).
+  Named list mapping routing keys to target node names or
+  [END](https://arnold-kakas.github.io/puppeteeR/reference/END.md).
 
 ## Value
 

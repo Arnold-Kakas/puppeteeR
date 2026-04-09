@@ -1,7 +1,7 @@
 # Production Use Cases
 
 puppeteeR fits best where workflows are **stateful, conditional, or
-interruptible** — not where raw LLM throughput is the goal. R’s
+interruptible** - not where raw LLM throughput is the goal. R’s
 single-threaded execution means agents run sequentially, which is
 actually a feature in many real pipelines: each agent’s output informs
 the next.
@@ -12,7 +12,7 @@ the next.
 extracted, and summarised before reaching analysts. Manual processing is
 slow and inconsistent.
 
-**Pattern**: Linear chain — classify → extract → summarise.
+**Pattern**: Linear chain - classify → extract → summarise.
 
 ``` r
 library(ellmer)
@@ -66,7 +66,7 @@ result <- runner$invoke(list(
 cat(result$get("summary"))
 ```
 
-**Why puppeteeR?** State is shared — the summariser sees both the
+**Why puppeteeR?** State is shared - the summariser sees both the
 category and the extracted facts without re-reading the document. The
 pipeline is resumable if any step fails.
 
@@ -76,7 +76,7 @@ pipeline is resumable if any step fails.
 
 **Problem**: A support inbox receives hundreds of messages daily. Urgent
 items must be escalated, spam filtered, and routine queries routed to
-the right team — all before a human reads them.
+the right team - all before a human reads them.
 
 **Pattern**: Classify → route to specialist or discard.
 
@@ -110,7 +110,7 @@ runner <- state_graph(schema) |>
     list(draft_reply = config$agents$billing$chat(state$get("email")))
   }) |>
   add_node("discard", function(state, config) {
-    list(draft_reply = "(spam — no reply sent)")
+    list(draft_reply = "(spam - no reply sent)")
   }) |>
   add_edge(START, "classify") |>
   add_conditional_edge("classify",
@@ -144,7 +144,7 @@ cat(result$get("draft_reply"))
 ## 3. Automated report generation
 
 **Problem**: Weekly or monthly reports require pulling analysis,
-generating narrative, and formatting output — repetitive work that is
+generating narrative, and formatting output - repetitive work that is
 nonetheless high-stakes enough to need review.
 
 **Pattern**: Research → draft → edit → human approval → publish.
@@ -202,16 +202,16 @@ result <- runner$invoke(
 ```
 
 **Why checkpointing?** Each step is expensive. If the session crashes
-after “draft” but before “edit”, restarting resumes from the checkpoint
-— the analyst’s work is not repeated.
+after “draft” but before “edit”, restarting resumes from the
+checkpoint - the analyst’s work is not repeated.
 
 ------------------------------------------------------------------------
 
 ## 4. Code review assistant
 
 **Problem**: Pull requests sit unreviewed because engineers are busy. An
-LLM can provide a first pass — catching obvious issues, enforcing style,
-and summarising changes — before human review.
+LLM can provide a first pass - catching obvious issues, enforcing style,
+and summarising changes - before human review.
 
 **Pattern**: Supervisor delegates to specialist reviewers then
 synthesises.
@@ -253,7 +253,7 @@ for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n")
 
 ## 5. Multi-turn data analysis
 
-**Problem**: Exploratory data analysis requires iteration — a hypothesis
+**Problem**: Exploratory data analysis requires iteration - a hypothesis
 is formed, tested, and revised. LLM agents can participate in this loop
 alongside human analysts.
 

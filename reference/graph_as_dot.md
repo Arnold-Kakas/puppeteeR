@@ -12,8 +12,10 @@ graph_as_dot(graph, nodes, edges, conditional_edges)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object. Not used directly — the graph's
-  private fields are passed via the remaining arguments.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object. Not used directly - the graph's private fields are passed via
+  the remaining arguments.
 
 - nodes:
 

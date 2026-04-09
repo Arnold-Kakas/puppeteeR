@@ -12,7 +12,9 @@ add_node(graph, name, fn)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - name:
 

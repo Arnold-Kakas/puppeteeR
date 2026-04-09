@@ -17,12 +17,15 @@ sequential_workflow(agents, state_schema = NULL)
 
 - state_schema:
 
-  A [WorkflowState](WorkflowState.md) or `NULL` (uses default
-  `messages` + [`reducer_append()`](reducer_append.md)).
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  or `NULL` (uses default `messages` +
+  [`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md)).
 
 ## Value
 
-A compiled [GraphRunner](GraphRunner.md).
+A compiled
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md).
 
 ## Examples
 

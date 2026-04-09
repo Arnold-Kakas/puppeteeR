@@ -70,7 +70,7 @@
     
     
 <p>puppeteeR fits best where workflows are <strong>stateful,
-conditional, or interruptible</strong> — not where raw LLM throughput is
+conditional, or interruptible</strong> - not where raw LLM throughput is
 the goal. R’s single-threaded execution means agents run sequentially,
 which is actually a feature in many real pipelines: each agent’s output
 informs the next.</p>
@@ -80,7 +80,7 @@ informs the next.</p>
 <p><strong>Problem</strong>: Incoming reports, contracts, or emails must
 be classified, extracted, and summarised before reaching analysts.
 Manual processing is slow and inconsistent.</p>
-<p><strong>Pattern</strong>: Linear chain — classify → extract →
+<p><strong>Pattern</strong>: Linear chain - classify → extract →
 summarise.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
@@ -132,7 +132,7 @@ summarise.</p>
 <span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"summary"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Why puppeteeR?</strong> State is shared — the summariser sees
+<p><strong>Why puppeteeR?</strong> State is shared - the summariser sees
 both the category and the extracted facts without re-reading the
 document. The pipeline is resumable if any step fails.</p>
 <hr>
@@ -142,7 +142,7 @@ document. The pipeline is resumable if any step fails.</p>
 </h2>
 <p><strong>Problem</strong>: A support inbox receives hundreds of
 messages daily. Urgent items must be escalated, spam filtered, and
-routine queries routed to the right team — all before a human reads
+routine queries routed to the right team - all before a human reads
 them.</p>
 <p><strong>Pattern</strong>: Classify → route to specialist or
 discard.</p>
@@ -176,7 +176,7 @@ discard.</p>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft_reply <span class="op">=</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">billing</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"email"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"discard"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft_reply <span class="op">=</span> <span class="st">"(spam — no reply sent)"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft_reply <span class="op">=</span> <span class="st">"(spam - no reply sent)"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"classify"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_conditional_edge.html">add_conditional_edge</a></span><span class="op">(</span><span class="st">"classify"</span>,</span>
@@ -209,7 +209,7 @@ discard.</p>
 <h2 id="automated-report-generation">3. Automated report generation<a class="anchor" aria-label="anchor" href="#automated-report-generation"></a>
 </h2>
 <p><strong>Problem</strong>: Weekly or monthly reports require pulling
-analysis, generating narrative, and formatting output — repetitive work
+analysis, generating narrative, and formatting output - repetitive work
 that is nonetheless high-stakes enough to need review.</p>
 <p><strong>Pattern</strong>: Research → draft → edit → human approval →
 publish.</p>
@@ -265,15 +265,15 @@ publish.</p>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Why checkpointing?</strong> Each step is expensive. If the
 session crashes after “draft” but before “edit”, restarting resumes from
-the checkpoint — the analyst’s work is not repeated.</p>
+the checkpoint - the analyst’s work is not repeated.</p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="code-review-assistant">4. Code review assistant<a class="anchor" aria-label="anchor" href="#code-review-assistant"></a>
 </h2>
 <p><strong>Problem</strong>: Pull requests sit unreviewed because
-engineers are busy. An LLM can provide a first pass — catching obvious
-issues, enforcing style, and summarising changes — before human
+engineers are busy. An LLM can provide a first pass - catching obvious
+issues, enforcing style, and summarising changes - before human
 review.</p>
 <p><strong>Pattern</strong>: Supervisor delegates to specialist
 reviewers then synthesises.</p>
@@ -314,7 +314,7 @@ reviewers then synthesises.</p>
 <h2 id="multi-turn-data-analysis">5. Multi-turn data analysis<a class="anchor" aria-label="anchor" href="#multi-turn-data-analysis"></a>
 </h2>
 <p><strong>Problem</strong>: Exploratory data analysis requires
-iteration — a hypothesis is formed, tested, and revised. LLM agents can
+iteration - a hypothesis is formed, tested, and revised. LLM agents can
 participate in this loop alongside human analysts.</p>
 <p><strong>Pattern</strong>: Analyst proposes approach → coder
 implements → analyst interprets → loop.</p>

@@ -1,12 +1,15 @@
 # GraphRunner R6 class
 
 The compiled, executable graph. Produced by
-[StateGraph](StateGraph.md)`$compile()`. Do not call `GraphRunner$new()`
-directly; use [StateGraph](StateGraph.md)`$compile()`.
+[StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)`$compile()`.
+Do not call `GraphRunner$new()` directly; use
+[StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)`$compile()`.
 
 ## Value
 
-The final [WorkflowState](WorkflowState.md) object.
+The final
+[WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+object.
 
 A `coro` generator yielding `list(node, state_snapshot, iteration)`.
 
@@ -69,7 +72,9 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
 
 - `state_schema`:
 
-  A [WorkflowState](WorkflowState.md) object (used as schema template).
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  object (used as schema template).
 
 - `agents`:
 
@@ -77,7 +82,9 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
 
 - `checkpointer`:
 
-  A [Checkpointer](Checkpointer.md) or `NULL`.
+  A
+  [Checkpointer](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
+  or `NULL`.
 
 - `termination`:
 

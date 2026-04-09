@@ -24,7 +24,8 @@ Character vector.
 
 - `schema`:
 
-  The raw schema list (read-only). Used by [GraphRunner](GraphRunner.md)
+  The raw schema list (read-only). Used by
+  [GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md)
   to reconstruct a fresh state on each `$invoke()` call.
 
 ## Methods
@@ -65,7 +66,9 @@ Create a new WorkflowState.
 
   Named list where each element is
   `list(default = <value>, reducer = <function>)`. If `reducer` is
-  omitted, [`reducer_overwrite()`](reducer_overwrite.md) is used.
+  omitted,
+  [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
+  is used.
 
 ------------------------------------------------------------------------
 

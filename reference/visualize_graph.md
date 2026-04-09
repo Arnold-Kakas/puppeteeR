@@ -12,7 +12,9 @@ visualize_graph(graph, engine)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - engine:
 

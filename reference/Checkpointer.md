@@ -1,9 +1,9 @@
 # Checkpointer base class
 
 Abstract interface for persisting workflow state. Concrete subclasses:
-[MemoryCheckpointer](MemoryCheckpointer.md),
-[RDSCheckpointer](RDSCheckpointer.md),
-[SQLiteCheckpointer](SQLiteCheckpointer.md).
+[MemoryCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/MemoryCheckpointer.md),
+[RDSCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/RDSCheckpointer.md),
+[SQLiteCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/SQLiteCheckpointer.md).
 
 ## Value
 

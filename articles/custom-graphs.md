@@ -7,8 +7,9 @@ back together.
 ## Pattern 1: Agent loop with termination condition
 
 A single agent that keeps refining its output until a condition is met.
-The graph cycles back on itself — guarded by
-[`max_turns()`](../reference/max_turns.md) so it can’t run forever.
+The graph cycles back on itself - guarded by
+[`max_turns()`](https://arnold-kakas.github.io/puppeteeR/reference/max_turns.md)
+so it can’t run forever.
 
 ``` r
 schema <- workflow_state(
@@ -54,7 +55,7 @@ result <- runner$invoke(list(task = "Explain what a neural network is."))
 result$get("draft")
 ```
 
-## Pattern 2: Linear pipeline — research → write → edit
+## Pattern 2: Linear pipeline - research → write → edit
 
 Nodes can read outputs from previous nodes via state. Each node adds to
 accumulated history.

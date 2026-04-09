@@ -2,12 +2,15 @@
 
 Builder for directed graphs of node functions. Nodes are named R
 functions; edges are fixed or conditional routing rules. Call
-`$compile()` to produce an executable [GraphRunner](GraphRunner.md).
+`$compile()` to produce an executable
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md).
 
-Use the pipe-friendly wrappers [`add_node()`](add_node.md),
-[`add_edge()`](add_edge.md), and
-[`add_conditional_edge()`](add_conditional_edge.md) rather than
-`$`-methods directly.
+Use the pipe-friendly wrappers
+[`add_node()`](https://arnold-kakas.github.io/puppeteeR/reference/add_node.md),
+[`add_edge()`](https://arnold-kakas.github.io/puppeteeR/reference/add_edge.md),
+and
+[`add_conditional_edge()`](https://arnold-kakas.github.io/puppeteeR/reference/add_conditional_edge.md)
+rather than `$`-methods directly.
 
 ## Value
 
@@ -21,7 +24,9 @@ Invisibly, `self`.
 
 Invisibly, `self`.
 
-A [GraphRunner](GraphRunner.md) object ready to execute.
+A
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md)
+object ready to execute.
 
 Character string.
 
@@ -71,12 +76,14 @@ Create a new StateGraph.
 
 - `state_schema`:
 
-  A [WorkflowState](WorkflowState.md) object, or a named list that will
-  be passed to [`workflow_state()`](workflow_state.md).
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  object, or a named list that will be passed to
+  [`workflow_state()`](https://arnold-kakas.github.io/puppeteeR/reference/workflow_state.md).
 
 ------------------------------------------------------------------------
 
-### Method [`add_node()`](add_node.md)
+### Method [`add_node()`](https://arnold-kakas.github.io/puppeteeR/reference/add_node.md)
 
 Register a node function.
 
@@ -97,7 +104,7 @@ Register a node function.
 
 ------------------------------------------------------------------------
 
-### Method [`add_edge()`](add_edge.md)
+### Method [`add_edge()`](https://arnold-kakas.github.io/puppeteeR/reference/add_edge.md)
 
 Add a fixed edge between two nodes.
 
@@ -109,15 +116,17 @@ Add a fixed edge between two nodes.
 
 - `from`:
 
-  Node name or [START](START.md).
+  Node name or
+  [START](https://arnold-kakas.github.io/puppeteeR/reference/START.md).
 
 - `to`:
 
-  Node name or [END](END.md).
+  Node name or
+  [END](https://arnold-kakas.github.io/puppeteeR/reference/END.md).
 
 ------------------------------------------------------------------------
 
-### Method [`add_conditional_edge()`](add_conditional_edge.md)
+### Method [`add_conditional_edge()`](https://arnold-kakas.github.io/puppeteeR/reference/add_conditional_edge.md)
 
 Add a conditional (routing) edge.
 
@@ -138,7 +147,8 @@ Add a conditional (routing) edge.
 
 - `route_map`:
 
-  Named list mapping routing keys to node names or [END](END.md).
+  Named list mapping routing keys to node names or
+  [END](https://arnold-kakas.github.io/puppeteeR/reference/END.md).
 
 ------------------------------------------------------------------------
 
@@ -158,9 +168,10 @@ Shortcut to set the graph entry node.
 
 ------------------------------------------------------------------------
 
-### Method [`compile()`](compile.md)
+### Method [`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md)
 
-Validate and compile the graph into a [GraphRunner](GraphRunner.md).
+Validate and compile the graph into a
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md).
 
 #### Usage
 
@@ -175,12 +186,15 @@ Validate and compile the graph into a [GraphRunner](GraphRunner.md).
 
 - `checkpointer`:
 
-  A [Checkpointer](Checkpointer.md) object or `NULL`.
+  A
+  [Checkpointer](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
+  object or `NULL`.
 
 - `termination`:
 
-  A termination condition (from [`max_turns()`](max_turns.md) etc.) or
-  `NULL`.
+  A termination condition (from
+  [`max_turns()`](https://arnold-kakas.github.io/puppeteeR/reference/max_turns.md)
+  etc.) or `NULL`.
 
 ------------------------------------------------------------------------
 

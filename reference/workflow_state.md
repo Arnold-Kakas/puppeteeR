@@ -1,7 +1,8 @@
 # Create a WorkflowState
 
-Constructs a [WorkflowState](WorkflowState.md) from named channel
-specifications.
+Constructs a
+[WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+from named channel specifications.
 
 ## Usage
 
@@ -15,11 +16,14 @@ workflow_state(...)
 
   Named arguments, each a `list(default = <value>)` optionally with a
   `reducer` element. If `reducer` is absent,
-  [`reducer_overwrite()`](reducer_overwrite.md) is used.
+  [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
+  is used.
 
 ## Value
 
-A [WorkflowState](WorkflowState.md) object.
+A
+[WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+object.
 
 ## Examples
 

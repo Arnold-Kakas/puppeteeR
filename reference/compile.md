@@ -12,7 +12,9 @@ compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - agents:
 
@@ -20,7 +22,9 @@ compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
 
 - checkpointer:
 
-  A [Checkpointer](Checkpointer.md) or `NULL`.
+  A
+  [Checkpointer](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
+  or `NULL`.
 
 - termination:
 
@@ -28,7 +32,9 @@ compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
 
 ## Value
 
-A [GraphRunner](GraphRunner.md) object.
+A
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md)
+object.
 
 ## Examples
 

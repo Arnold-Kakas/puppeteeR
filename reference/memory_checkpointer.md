@@ -10,7 +10,9 @@ memory_checkpointer()
 
 ## Value
 
-A [MemoryCheckpointer](MemoryCheckpointer.md) object.
+A
+[MemoryCheckpointer](https://arnold-kakas.github.io/puppeteeR/reference/MemoryCheckpointer.md)
+object.
 
 ## Examples
 

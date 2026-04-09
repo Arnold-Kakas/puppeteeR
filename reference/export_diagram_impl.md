@@ -12,7 +12,9 @@ export_diagram_impl(graph, path, width = 800L, height = 600L)
 
 - graph:
 
-  A [StateGraph](StateGraph.md) object.
+  A
+  [StateGraph](https://arnold-kakas.github.io/puppeteeR/reference/StateGraph.md)
+  object.
 
 - path:
 

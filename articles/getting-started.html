@@ -110,7 +110,7 @@ cost tracking</td>
 <div class="section level2">
 <h2 id="define-state">1. Define state<a class="anchor" aria-label="anchor" href="#define-state"></a>
 </h2>
-<p>Every graph has a <strong>state schema</strong> — a named set of
+<p>Every graph has a <strong>state schema</strong> - a named set of
 channels, each with a default value and an optional reducer that
 controls how updates merge.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -122,13 +122,13 @@ controls how updates merge.</p>
 <p>Three built-in reducers:</p>
 <ul>
 <li>
-<code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code> — default, replaces old value with
+<code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code> - default, replaces old value with
 new value</li>
 <li>
-<code><a href="../reference/reducer_append.html">reducer_append()</a></code> — wraps new value in a list and
+<code><a href="../reference/reducer_append.html">reducer_append()</a></code> - wraps new value in a list and
 appends to old list (great for message history)</li>
 <li>
-<code><a href="../reference/reducer_merge.html">reducer_merge()</a></code> — shallow-merges named lists with
+<code><a href="../reference/reducer_merge.html">reducer_merge()</a></code> - shallow-merges named lists with
 <code><a href="https://rdrr.io/r/utils/modifyList.html" class="external-link">modifyList()</a></code>
 </li>
 </ul>
@@ -240,7 +240,7 @@ dynamically.</p>
 <h2 id="streaming-execution">6. Streaming execution<a class="anchor" aria-label="anchor" href="#streaming-execution"></a>
 </h2>
 <p><code>stream()</code> returns a <code>coro</code> generator that
-yields after each node — useful for showing progress.</p>
+yields after each node - useful for showing progress.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="va">runner3</span><span class="op">$</span><span class="fu">stream</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"Explain quantum entanglement briefly."</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">coro</span><span class="fu">::</span><span class="fu"><a href="https://coro.r-lib.org/reference/collect.html" class="external-link">loop</a></span><span class="op">(</span><span class="kw">for</span> <span class="op">(</span><span class="va">step</span> <span class="kw">in</span> <span class="va">gen</span><span class="op">)</span> <span class="op">{</span></span>

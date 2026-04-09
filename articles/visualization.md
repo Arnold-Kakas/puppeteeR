@@ -1,6 +1,6 @@
 # Visualizing Graphs
 
-puppeteeR can render your graph structure before execution — useful for
+puppeteeR can render your graph structure before execution - useful for
 sanity-checking topology, sharing diagrams, and documentation. Three
 engines are supported.
 
@@ -81,9 +81,9 @@ g$visualize("dot")
 
 Node colours:
 
-- **Blue** (`#E8F0FE`) — regular nodes
-- **Yellow** (`#FFF3CD`) — nodes with conditional outgoing edges
-- **Dark** — START and END sentinels
+- **Blue** (`#E8F0FE`) - regular nodes
+- **Yellow** (`#FFF3CD`) - nodes with conditional outgoing edges
+- **Dark** - START and END sentinels
 
 ## visNetwork (interactive, requires `visNetwork`)
 
@@ -107,8 +107,9 @@ g$export_diagram("workflow.png", width = 1200L, height = 800L)
 ## Visualizing compiled runners
 
 Visualization works on `StateGraph` objects (before
-[`compile()`](../reference/compile.md)). To inspect a compiled runner’s
-structure, keep a reference to the graph object:
+[`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md)).
+To inspect a compiled runner’s structure, keep a reference to the graph
+object:
 
 ``` r
 g <- state_graph(schema) |>

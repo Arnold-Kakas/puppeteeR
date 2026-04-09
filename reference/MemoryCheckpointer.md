@@ -13,7 +13,8 @@ Character vector.
 
 ## Super class
 
-[`puppeteeR::Checkpointer`](Checkpointer.md) -\> `MemoryCheckpointer`
+[`puppeteeR::Checkpointer`](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
+-\> `MemoryCheckpointer`
 
 ## Methods
 

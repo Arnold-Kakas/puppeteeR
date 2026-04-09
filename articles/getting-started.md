@@ -12,12 +12,12 @@ idiomatic R.
 |-----------------|-------------------------------------------------------------------------------------------------------------------------|
 | `WorkflowState` | Mutable key-value store shared across all nodes                                                                         |
 | `StateGraph`    | Builder for the graph (nodes + edges)                                                                                   |
-| `GraphRunner`   | Compiled, executable graph returned by [`compile()`](../reference/compile.md)                                           |
+| `GraphRunner`   | Compiled, executable graph returned by [`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md)     |
 | `Agent`         | Thin wrapper around an [`ellmer::Chat`](https://ellmer.tidyverse.org/reference/Chat.html) with identity + cost tracking |
 
 ## 1. Define state
 
-Every graph has a **state schema** — a named set of channels, each with
+Every graph has a **state schema** - a named set of channels, each with
 a default value and an optional reducer that controls how updates merge.
 
 ``` r
@@ -30,12 +30,13 @@ schema <- workflow_state(
 
 Three built-in reducers:
 
-- [`reducer_overwrite()`](../reference/reducer_overwrite.md) — default,
-  replaces old value with new value
-- [`reducer_append()`](../reference/reducer_append.md) — wraps new value
-  in a list and appends to old list (great for message history)
-- [`reducer_merge()`](../reference/reducer_merge.md) — shallow-merges
-  named lists with
+- [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md) -
+  default, replaces old value with new value
+- [`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md) -
+  wraps new value in a list and appends to old list (great for message
+  history)
+- [`reducer_merge()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_merge.md) -
+  shallow-merges named lists with
   [`modifyList()`](https://rdrr.io/r/utils/modifyList.html)
 
 ## 2. Build the graph
@@ -59,8 +60,9 @@ runner <- state_graph(schema) |>
   compile()
 ```
 
-The pipe chain ends with [`compile()`](../reference/compile.md), which
-validates the graph and returns a `GraphRunner`.
+The pipe chain ends with
+[`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md),
+which validates the graph and returns a `GraphRunner`.
 
 ## 3. Run it
 
@@ -115,8 +117,9 @@ runner2$invoke(list(n = 99L))$get("out")
 
 Agents wrap
 [`ellmer::Chat`](https://ellmer.tidyverse.org/reference/Chat.html)
-objects. Pass them to [`compile()`](../reference/compile.md) and access
-them inside nodes via `config$agents`.
+objects. Pass them to
+[`compile()`](https://arnold-kakas.github.io/puppeteeR/reference/compile.md)
+and access them inside nodes via `config$agents`.
 
 ``` r
 library(ellmer)
@@ -148,7 +151,7 @@ result$get("answer")
 
 ## 6. Streaming execution
 
-`stream()` returns a `coro` generator that yields after each node —
+`stream()` returns a `coro` generator that yields after each node -
 useful for showing progress.
 
 ``` r
@@ -161,10 +164,11 @@ coro::loop(for (step in gen) {
 ## Next steps
 
 - **Custom graphs**: conditional loops, multi-agent collaboration →
-  [`vignette("custom-graphs")`](../articles/custom-graphs.md)
+  [`vignette("custom-graphs")`](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md)
 - **Convenience workflows**: one-liner sequential / supervisor / debate
-  → [`vignette("workflows")`](../articles/workflows.md)
+  →
+  [`vignette("workflows")`](https://arnold-kakas.github.io/puppeteeR/articles/workflows.md)
 - **Checkpointing**: resume interrupted runs, human-in-the-loop →
-  [`vignette("checkpointing")`](../articles/checkpointing.md)
+  [`vignette("checkpointing")`](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md)
 - **Visualization**: render graph diagrams →
-  [`vignette("visualization")`](../articles/visualization.md)
+  [`vignette("visualization")`](https://arnold-kakas.github.io/puppeteeR/articles/visualization.md)

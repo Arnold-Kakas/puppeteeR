@@ -76,7 +76,7 @@ back together.</p>
 <h2 id="pattern-1-agent-loop-with-termination-condition">Pattern 1: Agent loop with termination condition<a class="anchor" aria-label="anchor" href="#pattern-1-agent-loop-with-termination-condition"></a>
 </h2>
 <p>A single agent that keeps refining its output until a condition is
-met. The graph cycles back on itself — guarded by
+met. The graph cycles back on itself - guarded by
 <code><a href="../reference/max_turns.html">max_turns()</a></code> so it can’t run forever.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
@@ -120,7 +120,7 @@ met. The graph cycles back on itself — guarded by
 <span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"draft"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="pattern-2-linear-pipeline-research-write-edit">Pattern 2: Linear pipeline — research → write → edit<a class="anchor" aria-label="anchor" href="#pattern-2-linear-pipeline-research-write-edit"></a>
+<h2 id="pattern-2-linear-pipeline---research-write-edit">Pattern 2: Linear pipeline - research → write → edit<a class="anchor" aria-label="anchor" href="#pattern-2-linear-pipeline---research-write-edit"></a>
 </h2>
 <p>Nodes can read outputs from previous nodes via state. Each node adds
 to accumulated history.</p>

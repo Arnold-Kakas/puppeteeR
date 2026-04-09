@@ -13,7 +13,8 @@ Character vector.
 
 ## Super class
 
-[`puppeteeR::Checkpointer`](Checkpointer.md) -\> `SQLiteCheckpointer`
+[`puppeteeR::Checkpointer`](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
+-\> `SQLiteCheckpointer`
 
 ## Methods
 

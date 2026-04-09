@@ -1,7 +1,7 @@
 # puppeteeR ![](reference/figures/logo.png)
 
 **puppeteeR** orchestrates multiple LLM agents into coordinated
-workflows. Define agents with different roles, providers, and tools —
+workflows. Define agents with different roles, providers, and tools -
 then wire them into a graph where each agent acts on shared state,
 routes work conditionally, and hands off to the next.
 
@@ -22,7 +22,7 @@ pak::pak("Arnold-Kakas/puppeteeR")
 
 ## Quick start
 
-### Sequential pipeline — code review
+### Sequential pipeline - code review
 
 Three agents pass work along a chain: coder writes, reviewer critiques,
 writer summarizes.
@@ -63,7 +63,7 @@ result <- pipeline$invoke(list(
 ))
 ```
 
-### Custom graph — email triage with routing
+### Custom graph - email triage with routing
 
 Build a graph where a classifier routes emails to different handlers,
 with a human approval step.
@@ -122,7 +122,7 @@ result <- runner$invoke(
 )
 ```
 
-### Supervisor — dynamic task routing
+### Supervisor - dynamic task routing
 
 A manager agent decides which specialist handles each sub-task.
 
@@ -194,23 +194,23 @@ runner$cost_report()
 ## Workflow patterns
 
 - **Sequential**: Agents in a chain. Use
-  [`sequential_workflow()`](reference/sequential_workflow.md).
+  [`sequential_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.md).
 - **Supervisor**: A manager routes to specialists dynamically. Use
-  [`supervisor_workflow()`](reference/supervisor_workflow.md).
+  [`supervisor_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/supervisor_workflow.md).
 - **Debate**: Agents take turns arguing, a judge decides. Use
-  [`debate_workflow()`](reference/debate_workflow.md).
+  [`debate_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/debate_workflow.md).
 - **Custom graph**: Build any DAG (or cyclic graph) with
-  [`state_graph()`](reference/state_graph.md).
+  [`state_graph()`](https://arnold-kakas.github.io/puppeteeR/reference/state_graph.md).
 
 ## Related packages
 
-- [ellmer](https://ellmer.tidyverse.org/) — the LLM engine under the
+- [ellmer](https://ellmer.tidyverse.org/) - the LLM engine under the
   hood
-- [LangGraph](https://github.com/langchain-ai/langgraph) (Python) —
+- [LangGraph](https://github.com/langchain-ai/langgraph) (Python) -
   architectural inspiration
-- [mini007](https://cran.r-project.org/package=mini007) — simpler
+- [mini007](https://cran.r-project.org/package=mini007) - simpler
   multi-agent framework for R
-- [LLMAgentR](https://github.com/knowusuboaky/LLMAgentR) — single-agent
+- [LLMAgentR](https://github.com/knowusuboaky/LLMAgentR) - single-agent
   graph workflows
 
 ## License

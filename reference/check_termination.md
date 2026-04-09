@@ -1,8 +1,9 @@
 # Evaluate a termination condition
 
-S3 generic called by [GraphRunner](GraphRunner.md) after each node
-execution. Implement this method to create custom termination condition
-classes.
+S3 generic called by
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md)
+after each node execution. Implement this method to create custom
+termination condition classes.
 
 ## Usage
 
@@ -18,7 +19,9 @@ check_termination(condition, state, iteration, total_cost)
 
 - state:
 
-  A [WorkflowState](WorkflowState.md) object.
+  A
+  [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
+  object.
 
 - iteration:
 
