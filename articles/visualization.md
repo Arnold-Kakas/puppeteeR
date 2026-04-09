@@ -104,6 +104,11 @@ g$export_diagram("workflow.svg")
 g$export_diagram("workflow.png", width = 1200L, height = 800L)
 ```
 
+Here is an example PNG exported from the email triage graph (classify -
+route to support/billing/discard):
+
+![](figures/workflow.png)
+
 ## Visualizing compiled runners
 
 Visualization works on `StateGraph` objects (before
