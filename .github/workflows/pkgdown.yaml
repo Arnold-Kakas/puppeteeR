@@ -1,27 +1,22 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   push:
     branches: [main, master]
-  pull_request:
-  release:
-    types: [published]
   workflow_dispatch:
 
-name: pkgdown.yaml
+name: pkgdown
 
-permissions: read-all
+permissions:
+  contents: write
 
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    # Only restrict concurrency for non-PR jobs
     concurrency:
-      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+      group: pkgdown-${{ github.ref }}
+      cancel-in-progress: true
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,17 +26,24 @@ jobs:
         with:
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Cache R packages
+        uses: actions/cache@v4
         with:
-          extra-packages: any::pkgdown, local::.
-          needs: website
+          path: ${{ env.R_LIBS_USER }}
+          key: pkgdown-${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
+          restore-keys: pkgdown-${{ runner.os }}-r-
+
+      - name: Install dependencies
+        run: |
+          install.packages(c("remotes", "pkgdown"))
+          remotes::install_deps(dependencies = TRUE)
+        shell: Rscript {0}
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      - name: Deploy to GitHub pages 🚀
-        if: github.event_name != 'pull_request'
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           clean: false
