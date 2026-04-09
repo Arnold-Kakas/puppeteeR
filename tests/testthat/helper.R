@@ -8,8 +8,10 @@ mock_chat <- function(responses = "mock response") {
       resp <- responses[[min(idx, length(responses))]]
       resp
     },
-    get_cost   = function(...) data.frame(cost = 0, stringsAsFactors = FALSE),
-    get_tokens = function(...) data.frame(input = 0L, output = 0L, stringsAsFactors = FALSE),
+    get_cost   = function(...) structure(0, class = c("ellmer_dollars", "numeric")),
+    get_tokens = function(...) data.frame(role = character(0), tokens = numeric(0),
+                                          tokens_total = numeric(0),
+                                          stringsAsFactors = FALSE),
     get_turns  = function() list(),
     set_turns  = function(turns) invisible(NULL),
     get_system_prompt = function() "",

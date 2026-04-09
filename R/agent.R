@@ -157,14 +157,13 @@ Agent <- R6::R6Class(
 
     .track_cost = function() {
       tryCatch({
-        cost_df <- private$.chat$get_cost()
-        if (!is.null(cost_df) && nrow(cost_df) > 0L) {
-          private$.cumulative_cost <- sum(cost_df$cost, na.rm = TRUE)
-        }
+        private$.cumulative_cost <- as.numeric(private$.chat$get_cost())
         tokens_df <- private$.chat$get_tokens()
         if (!is.null(tokens_df) && nrow(tokens_df) > 0L) {
-          private$.cumulative_tokens$input <- sum(tokens_df$input, na.rm = TRUE)
-          private$.cumulative_tokens$output <- sum(tokens_df$output, na.rm = TRUE)
+          private$.cumulative_tokens$input  <-
+            sum(tokens_df$tokens[tokens_df$role == "user"],     na.rm = TRUE)
+          private$.cumulative_tokens$output <-
+            sum(tokens_df$tokens[tokens_df$role == "assistant"], na.rm = TRUE)
         }
       }, error = function(e) NULL)
     }

@@ -90,6 +90,12 @@ g$export_diagram("workflow.svg")
 g$export_diagram("workflow.png", width = 1200L, height = 800L)
 ```
 
+Here is an example PNG exported from the email triage graph (classify - route to support/billing/discard):
+
+```{r workflow-png, echo = FALSE, out.width = "100%"}
+knitr::include_graphics("figures/workflow.png")
+```
+
 ## Visualizing compiled runners
 
 Visualization works on `StateGraph` objects (before `compile()`). To inspect a compiled runner's

@@ -29,18 +29,17 @@ jobs:
           key: coverage-${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
           restore-keys: coverage-${{ runner.os }}-r-
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::covr, any::xml2
-          needs: coverage
-
-      - name: Test coverage
+      - name: Install dependencies
         run: |
-          cov <- covr::package_coverage(
-            quiet = FALSE,
-            clean = FALSE,
-            install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"), winslash = "/"), "package")
-          )
+          install.packages(c("remotes", "covr", "xml2"))
+          remotes::install_deps(dependencies = TRUE)
+          remotes::install_local(".", force = TRUE)
+        shell: Rscript {0}
+
+      - name: Run coverage
+        run: |
+          cov <- covr::package_coverage(quiet = FALSE)
+          print(cov)
           covr::to_cobertura(cov)
         shell: Rscript {0}
 
