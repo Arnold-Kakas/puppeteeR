@@ -1,0 +1,41 @@
+Package: puppeteeR
+Title: LLM Multi-Agent Orchestrator Built on 'ellmer'
+Version: 0.1.0
+Authors@R:
+    person("Arnold", "Kakas", email = "arnold@example.com", role = c("aut", "cre"))
+Description: Graph-based workflow engine for orchestrating multiple large language
+    model (LLM) agents with different roles, tools, and providers. Built on
+    'ellmer', providing LangGraph-style directed graphs where node functions
+    collaborate via shared typed state channels with reducer semantics.
+    Supports checkpointing, termination conditions, visualization, and
+    convenience workflow patterns (sequential, supervisor, debate).
+License: MIT + file LICENSE
+URL: https://github.com/Arnold-Kakas/puppeteeR
+BugReports: https://github.com/Arnold-Kakas/puppeteeR/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.2.0)
+Imports:
+    R6,
+    cli,
+    rlang,
+    coro
+Suggests:
+    ellmer (>= 0.2.0),
+    testthat (>= 3.0.0),
+    withr,
+    DiagrammeR,
+    DiagrammeRsvg,
+    visNetwork,
+    RSQLite,
+    DBI,
+    rsvg,
+    covr,
+    httptest2,
+    shiny,
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+VignetteBuilder: knitr
