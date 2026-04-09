@@ -21,9 +21,13 @@ Agent <- R6::R6Class(
     #'   the system prompt.
     #' @param tools List of `ellmer::tool()` objects to register on the chat.
     #' @param handoffs Character vector of agent names this agent may hand off to.
+    #' @param max_retries Integer. Number of times to retry a failed API call
+    #'   before raising an error (default `3L`). Set to `0L` to disable retries.
+    #' @param retry_wait Numeric. Seconds to wait between retries (default `5`).
     #' @returns A new `Agent` object.
     initialize = function(name, chat, role = NULL, instructions = NULL,
-                          tools = list(), handoffs = character()) {
+                          tools = list(), handoffs = character(),
+                          max_retries = 3L, retry_wait = 5) {
       rlang::check_required(name)
       rlang::check_required(chat)
       rlang::check_installed("ellmer", reason = "to create Agent objects")
@@ -33,11 +37,13 @@ Agent <- R6::R6Class(
       if (!inherits(chat, "Chat")) {
         cli::cli_abort("{.arg chat} must be an {.cls Chat} object from {.pkg ellmer}.")
       }
-      private$.name <- name
-      private$.chat <- chat
-      private$.role <- role
+      private$.name        <- name
+      private$.chat        <- chat
+      private$.role        <- role
       private$.instructions <- instructions
-      private$.handoffs <- handoffs
+      private$.handoffs    <- handoffs
+      private$.max_retries <- as.integer(max_retries)
+      private$.retry_wait  <- as.numeric(retry_wait)
 
       system_parts <- character(0)
       if (!is.null(role)) system_parts <- c(system_parts, paste0("Role: ", role))
@@ -59,11 +65,11 @@ Agent <- R6::R6Class(
       }
     },
 
-    #' @description Send a message to the agent.
+    #' @description Send a message to the agent, retrying on transient errors.
     #' @param ... Passed to `ellmer::Chat$chat()`.
     #' @returns The assistant's response as a character string.
     chat = function(...) {
-      result <- private$.chat$chat(...)
+      result <- private$.with_retry(function() private$.chat$chat(...))
       private$.track_cost()
       result
     },
@@ -73,7 +79,7 @@ Agent <- R6::R6Class(
     #' @param type An `ellmer` type specification for the structured output.
     #' @returns Parsed R object matching `type`.
     chat_structured = function(..., type) {
-      result <- private$.chat$chat_structured(..., type = type)
+      result <- private$.with_retry(function() private$.chat$chat_structured(..., type = type))
       private$.track_cost()
       result
     },
@@ -152,8 +158,25 @@ Agent <- R6::R6Class(
     .role = NULL,
     .instructions = NULL,
     .handoffs = NULL,
+    .max_retries = 3L,
+    .retry_wait  = 5,
     .cumulative_cost = 0,
     .cumulative_tokens = list(input = 0L, output = 0L),
+
+    .with_retry = function(fn) {
+      attempts <- max(1L, private$.max_retries + 1L)
+      for (i in seq_len(attempts)) {
+        result <- tryCatch(fn(), error = function(e) e)
+        if (!inherits(result, "error")) return(result)
+        if (i == attempts) cli::cli_abort(conditionMessage(result), parent = result)
+        cli::cli_warn(c(
+          "!" = "Agent {.val {private$.name}}: API error on attempt {i}/{attempts}.",
+          "i" = "{conditionMessage(result)}",
+          "i" = "Retrying in {private$.retry_wait}s..."
+        ))
+        Sys.sleep(private$.retry_wait)
+      }
+    },
 
     .track_cost = function() {
       tryCatch({
@@ -177,22 +200,28 @@ Agent <- R6::R6Class(
 #' @param instructions Character or `NULL`. Detailed system instructions.
 #' @param tools List of `ellmer::tool()` objects.
 #' @param handoffs Character vector of agent names for handoffs.
+#' @param max_retries Integer. Retries on transient API errors (default `3L`).
+#' @param retry_wait Numeric. Seconds between retries (default `5`).
 #' @returns An `Agent` R6 object.
 #' @export
 #' @examples
 #' \dontrun{
 #' ag <- agent(
-#'   name = "researcher",
-#'   chat = ellmer::chat_anthropic(),
-#'   role = "Senior researcher",
-#'   instructions = "Be thorough and cite sources."
+#'   name        = "researcher",
+#'   chat        = ellmer::chat_anthropic(),
+#'   role        = "Senior researcher",
+#'   instructions = "Be thorough and cite sources.",
+#'   max_retries = 3L,
+#'   retry_wait  = 5
 #' )
 #' }
 agent <- function(name, chat, role = NULL, instructions = NULL,
-                  tools = list(), handoffs = character()) {
+                  tools = list(), handoffs = character(),
+                  max_retries = 3L, retry_wait = 5) {
   Agent$new(
     name = name, chat = chat, role = role,
-    instructions = instructions, tools = tools, handoffs = handoffs
+    instructions = instructions, tools = tools, handoffs = handoffs,
+    max_retries = max_retries, retry_wait = retry_wait
   )
 }
 
