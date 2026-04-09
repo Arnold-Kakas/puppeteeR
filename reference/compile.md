@@ -1,0 +1,42 @@
+# Compile a StateGraph into a GraphRunner
+
+Compile a StateGraph into a GraphRunner
+
+## Usage
+
+``` r
+compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
+```
+
+## Arguments
+
+- graph:
+
+  A [StateGraph](StateGraph.md) object.
+
+- agents:
+
+  Named list of `Agent` objects.
+
+- checkpointer:
+
+  A [Checkpointer](Checkpointer.md) or `NULL`.
+
+- termination:
+
+  A termination condition or `NULL`.
+
+## Value
+
+A [GraphRunner](GraphRunner.md) object.
+
+## Examples
+
+``` r
+schema <- workflow_state(result = list(default = NULL))
+runner <- state_graph(schema) |>
+  add_node("step1", function(state, config) list(result = "done")) |>
+  add_edge(START, "step1") |>
+  add_edge("step1", END) |>
+  compile()
+```
