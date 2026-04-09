@@ -195,6 +195,71 @@ runner$invoke(
 #> n: int 40
 ```
 
+## Resilient batch pipelines
+
+When processing many files or records, two failure modes matter:
+
+- **Within a run**: the API call in node 3 fails after nodes 1 and 2
+  already ran — without a checkpoint you re-run the expensive steps from
+  scratch.
+- **Across runs**: the pipeline crashes on item 7 of 20 — you want to
+  skip items 1-6 on retry.
+
+Combine a checkpointer (within-run resilience) with a done-file tracker
+(across-run resilience):
+
+``` r
+library(ellmer)
+
+cp <- rds_checkpointer(dir = "checkpoints/")
+
+runner <- state_graph(schema) |>
+  add_node("read_file",   function(s, cfg) { ... }) |>
+  add_node("call_llm",    function(s, cfg) { ... }) |>  # expensive - worth checkpointing
+  add_node("save_result", function(s, cfg) { ... }) |>
+  add_edge(START, "read_file") |>
+  add_edge("read_file",   "call_llm") |>
+  add_edge("call_llm",    "save_result") |>
+  add_edge("save_result", END) |>
+  compile(
+    agents       = list(...),
+    checkpointer = cp,
+    termination  = max_turns(20L)
+  )
+
+files      <- list.files("source", pattern = "\\.xlsx$", full.names = TRUE)
+done_file  <- "checkpoints/done.rds"
+done       <- if (file.exists(done_file)) readRDS(done_file) else character(0)
+remaining  <- setdiff(files, done)
+
+for (f in remaining) {
+  thread_id <- paste0("file-", tools::file_path_sans_ext(basename(f)))
+  message("Processing: ", basename(f))
+  tryCatch({
+    runner$invoke(
+      list(file_path = f),
+      config = list(thread_id = thread_id)
+    )
+    done <- c(done, f)
+    saveRDS(done, done_file)
+  }, error = function(e) {
+    message("  FAILED: ", conditionMessage(e), " - will retry next run")
+  })
+}
+```
+
+**What happens on failure:**
+
+1.  Node `read_file` completes - checkpoint saved at step 1.
+2.  Node `call_llm` hits a connection error - pipeline stops.
+3.  On next run: `done.rds` does not contain this file, so it is
+    retried.
+4.  The runner finds the checkpoint at step 1 and **resumes from
+    `call_llm`** - skipping `read_file`.
+5.  Note: agents also retry automatically (up to 3 times by default)
+    before the pipeline fails, so transient connection drops are usually
+    handled without needing to re-run at all.
+
 ## Listing and loading specific steps
 
 ``` r

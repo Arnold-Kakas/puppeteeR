@@ -149,7 +149,35 @@ result <- runner3$invoke(list(query = "What is the speed of light?"))
 result$get("answer")
 ```
 
-## 6. Streaming execution
+## 6. Automatic retries
+
+LLM API calls occasionally fail with transient errors — dropped
+connections, rate limits, temporary service issues. Every
+[`agent()`](https://arnold-kakas.github.io/puppeteeR/reference/Agent.md)
+retries failed calls automatically before raising an error, so your
+pipeline keeps running without any extra code.
+
+The defaults are 3 retries with a 5-second wait between attempts.
+Override per agent:
+
+``` r
+# More patient agent for a slow or rate-limited endpoint
+researcher <- agent(
+  name         = "researcher",
+  chat         = chat_anthropic(),
+  instructions = "Be thorough.",
+  max_retries  = 5L,   # up to 5 retries
+  retry_wait   = 10    # 10 seconds between each
+)
+
+# Disable retries entirely (fail fast)
+fast_agent <- agent("fast", chat_anthropic(), max_retries = 0L)
+```
+
+Each retry attempt logs a warning with the error message and countdown,
+so you can see what is happening without the pipeline silently hanging.
+
+## 7. Streaming execution
 
 `stream()` returns a `coro` generator that yields after each node -
 useful for showing progress.
