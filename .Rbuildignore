@@ -16,3 +16,4 @@
 ^docs$
 ^debug_schema\.R$
 ^LICENSE\.md$
+^pkgdown$

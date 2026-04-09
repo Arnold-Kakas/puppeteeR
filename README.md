@@ -37,19 +37,23 @@ coder <- agent(
 
 reviewer <- agent(
   name = "reviewer",
-  chat = ellmer::chat_openai(),
+  chat = ellmer::chat_anthropic(),
   role = "Senior code reviewer",
   instructions = "Review R code for bugs, style, and performance. Be specific."
 )
 
 writer <- agent(
   name = "writer",
-  chat = ellmer::chat_google_gemini(),
+  chat = ellmer::chat_anthropic(),
   role = "Technical writer",
   instructions = "Summarize the code and review for a non-technical audience."
 )
 
-pipeline <- sequential_workflow(list(coder, reviewer, writer))
+pipeline <- sequential_workflow(list(
+  coder    = coder,
+  reviewer = reviewer,
+  writer   = writer
+))
 
 result <- pipeline$invoke(list(
   messages = list("Write an R function to detect outliers using the IQR method")
@@ -68,20 +72,24 @@ schema <- workflow_state(
   approved = list(default = FALSE)
 )
 
-classifier <- agent("classifier", chat_openai(model = "gpt-4.1-mini"),
+classifier <- agent("classifier", ellmer::chat_anthropic(),
   instructions = "Classify the email as 'urgent', 'routine', or 'spam'. Return ONLY the label.")
 
-drafter <- agent("drafter", chat_anthropic(),
+drafter <- agent("drafter", ellmer::chat_anthropic(),
   instructions = "Draft a professional reply to this email.")
 
 graph <- state_graph(schema) |>
   add_node("classify", function(state, config) {
-    result <- config$agents$classifier$chat(state$get("messages"))
-    list(classification = trimws(result))
+    msgs  <- state$get("messages")
+    email <- as.character(msgs[[length(msgs)]])
+    result <- config$agents$classifier$chat(email)
+    list(classification = trimws(tolower(result)))
   }) |>
   add_node("draft_reply", function(state, config) {
+    msgs  <- state$get("messages")
+    email <- as.character(msgs[[length(msgs)]])
     prompt <- sprintf("Classification: %s\n\nEmail: %s\n\nDraft a reply.",
-                      state$get("classification"), state$get("messages"))
+                      state$get("classification"), email)
     list(draft = config$agents$drafter$chat(prompt))
   }) |>
   add_node("human_review", function(state, config) {
@@ -95,7 +103,7 @@ graph <- state_graph(schema) |>
   ) |>
   add_edge("draft_reply", "human_review") |>
   add_conditional_edge("human_review",
-    routing_fn = function(state) if (state$get("approved")) "done" else "revise",
+    routing_fn = function(state) if (isTRUE(state$get("approved"))) "done" else "revise",
     route_map = list(done = END, revise = "draft_reply")
   )
 
@@ -115,16 +123,16 @@ result <- runner$invoke(
 A manager agent decides which specialist handles each sub-task.
 
 ```r
-manager <- agent("manager", chat_anthropic(),
+manager <- agent("manager", ellmer::chat_anthropic(),
   instructions = "Route tasks to specialists: 'analyst', 'coder', or 'writer'.
     Respond with ONLY the specialist name, or 'DONE' when complete.")
 
 team <- supervisor_workflow(
   manager = manager,
   workers = list(
-    analyst = agent("analyst", chat_anthropic(), role = "Data analyst"),
-    coder = agent("coder", chat_openai(), role = "R programmer"),
-    writer = agent("writer", chat_google_gemini(), role = "Report writer")
+    analyst = agent("analyst", ellmer::chat_anthropic(), role = "Data analyst"),
+    coder = agent("coder", ellmer::chat_anthropic(), role = "R programmer"),
+    writer = agent("writer", ellmer::chat_anthropic(), role = "Report writer")
   ),
   max_rounds = 8
 )
@@ -153,10 +161,10 @@ Monitor a running workflow:
 
 ```r
 # Stream execution and watch state changes
-runner$stream(initial_state) |>
-  purrr::walk(function(step) {
-    cat(sprintf("[%s] %s\n", step$node, step$duration))
-  })
+gen <- runner$stream(list(messages = list("Our production server is down, we need help ASAP")))
+coro::loop(for (step in gen) {
+  cat(sprintf("[step %d] node: %s\n", step$iteration, step$node))
+})
 
 # Cost report after execution
 runner$cost_report()

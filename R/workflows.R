@@ -111,24 +111,6 @@ supervisor_workflow <- function(manager, workers, max_rounds = 10L,
   }
   g$add_node("manager", manager_fn)
 
-  route_map <- stats::setNames(
-    as.list(worker_names),
-    worker_names
-  )
-  route_map$DONE <- END
-
-  routing_fn <- function(state) {
-    route <- state$get("current_route")
-    matched <- worker_names[vapply(
-      worker_names,
-      function(nm) grepl(nm, route, fixed = TRUE),
-      logical(1)
-    )]
-    if (length(matched) > 0L) return(matched[[1L]])
-    "DONE"
-  }
-  g$add_conditional_edge("manager", routing_fn, route_map)
-
   for (nm in worker_names) {
     local({
       worker_nm <- nm
@@ -142,6 +124,21 @@ supervisor_workflow <- function(manager, workers, max_rounds = 10L,
       g$add_edge(worker_nm, "manager")
     })
   }
+
+  route_map <- stats::setNames(as.list(worker_names), worker_names)
+  route_map$DONE <- END
+
+  routing_fn <- function(state) {
+    route <- state$get("current_route")
+    matched <- worker_names[vapply(
+      worker_names,
+      function(nm) grepl(nm, route, fixed = TRUE),
+      logical(1)
+    )]
+    if (length(matched) > 0L) return(matched[[1L]])
+    "DONE"
+  }
+  g$add_conditional_edge("manager", routing_fn, route_map)
 
   g$add_edge(START, "manager")
 

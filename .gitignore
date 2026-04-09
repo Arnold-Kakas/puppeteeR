@@ -2,3 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+docs
+.claude
+
+# root .md files (except README.md and LICENSE.md)
+architecture.md
+code-style.md
+testing.md
+development.md
+CLAUDE.md
