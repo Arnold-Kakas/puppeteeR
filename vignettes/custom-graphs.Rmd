@@ -122,7 +122,7 @@ and merging results.
 ```{r fanout-schema}
 fanout_schema <- workflow_state(
   question  = list(default = ""),
-  answers   = list(default = list(), reducer = reducer_append()),
+  answers   = list(default = list()),
   consensus = list(default = "")
 )
 ```
@@ -140,12 +140,14 @@ runner <- state_graph(fanout_schema) |>
     ans_a <- config$agents$a$chat(q)
     ans_b <- config$agents$b$chat(q)
     ans_c <- config$agents$c$chat(q)
-    list(answers = ans_a, answers = ans_b, answers = ans_c)
+    list(answers = list(ans_a, ans_b, ans_c))
   }) |>
   add_node("synthesise", function(state, config) {
+    answers <- state$get("answers")
     all_answers <- paste(
-      mapply(function(i, a) paste0("Answer ", i, ":\n", a),
-             seq_along(state$get("answers")), state$get("answers")),
+      vapply(seq_along(answers),
+             function(i) paste0("Answer ", i, ":\n", answers[[i]]),
+             character(1L)),
       collapse = "\n\n"
     )
     list(consensus = config$agents$judge$chat(all_answers))

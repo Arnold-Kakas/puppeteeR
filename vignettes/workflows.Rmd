@@ -124,7 +124,7 @@ result <- runner$invoke(list(
 ))
 
 # Print the debate transcript
-for (msg in result$get("messages")) cat("---\n", msg, "\n")
+for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n")
 ```
 
 ### With a judge
