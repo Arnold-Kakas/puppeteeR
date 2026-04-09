@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      RENV_CONFIG_ACTIVE: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +26,10 @@ jobs:
         with:
           extra-packages: any::covr, any::xml2
           needs: coverage
+
+      - name: Disable renv
+        run: file.remove(".Rprofile")
+        shell: Rscript {0}
 
       - name: Run coverage
         run: |

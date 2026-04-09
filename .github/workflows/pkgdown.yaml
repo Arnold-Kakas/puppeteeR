@@ -16,7 +16,6 @@ jobs:
       cancel-in-progress: true
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      RENV_CONFIG_ACTIVE: "false"
 
     steps:
       - uses: actions/checkout@v4
