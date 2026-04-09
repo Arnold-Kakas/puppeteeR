@@ -5,7 +5,7 @@
 [![R-CMD-check](https://github.com/Arnold-Kakas/puppeteeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Arnold-Kakas/puppeteeR/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-**puppeteeR** orchestrates multiple LLM agents into coordinated workflows. Define agents with different roles, providers, and tools — then wire them into a graph where each agent acts on shared state, routes work conditionally, and hands off to the next.
+**puppeteeR** orchestrates multiple LLM agents into coordinated workflows. Define agents with different roles, providers, and tools - then wire them into a graph where each agent acts on shared state, routes work conditionally, and hands off to the next.
 
 Built on [ellmer](https://ellmer.tidyverse.org/) for LLM access. Inspired by [LangGraph](https://github.com/langchain-ai/langgraph) but designed to feel like idiomatic R.
 
@@ -20,7 +20,7 @@ pak::pak("Arnold-Kakas/puppeteeR")
 
 ## Quick start
 
-### Sequential pipeline — code review
+### Sequential pipeline - code review
 
 Three agents pass work along a chain: coder writes, reviewer critiques, writer summarizes.
 
@@ -60,7 +60,7 @@ result <- pipeline$invoke(list(
 ))
 ```
 
-### Custom graph — email triage with routing
+### Custom graph - email triage with routing
 
 Build a graph where a classifier routes emails to different handlers, with a human approval step.
 
@@ -118,7 +118,7 @@ result <- runner$invoke(
 )
 ```
 
-### Supervisor — dynamic task routing
+### Supervisor - dynamic task routing
 
 A manager agent decides which specialist handles each sub-task.
 
@@ -196,10 +196,10 @@ runner$cost_report()
 
 ## Related packages
 
-- [ellmer](https://ellmer.tidyverse.org/) — the LLM engine under the hood
-- [LangGraph](https://github.com/langchain-ai/langgraph) (Python) — architectural inspiration
-- [mini007](https://cran.r-project.org/package=mini007) — simpler multi-agent framework for R
-- [LLMAgentR](https://github.com/knowusuboaky/LLMAgentR) — single-agent graph workflows
+- [ellmer](https://ellmer.tidyverse.org/) - the LLM engine under the hood
+- [LangGraph](https://github.com/langchain-ai/langgraph) (Python) - architectural inspiration
+- [mini007](https://cran.r-project.org/package=mini007) - simpler multi-agent framework for R
+- [LLMAgentR](https://github.com/knowusuboaky/LLMAgentR) - single-agent graph workflows
 
 ## License
 

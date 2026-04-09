@@ -7,7 +7,7 @@
 graph_as_mermaid(graph, nodes, edges, conditional_edges)
 }
 \arguments{
-\item{graph}{A \link{StateGraph} object. Not used directly — the graph's private
+\item{graph}{A \link{StateGraph} object. Not used directly - the graph's private
 fields are passed via the remaining arguments.}
 
 \item{nodes}{Named list of node specs.}

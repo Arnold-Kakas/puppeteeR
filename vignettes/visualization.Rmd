@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 library(puppeteeR)
 ```
 
-puppeteeR can render your graph structure before execution — useful for sanity-checking topology,
+puppeteeR can render your graph structure before execution - useful for sanity-checking topology,
 sharing diagrams, and documentation. Three engines are supported.
 
 ## Build a sample graph
@@ -68,9 +68,9 @@ g$visualize("dot")
 
 Node colours:
 
-- **Blue** (`#E8F0FE`) — regular nodes
-- **Yellow** (`#FFF3CD`) — nodes with conditional outgoing edges
-- **Dark** — START and END sentinels
+- **Blue** (`#E8F0FE`) - regular nodes
+- **Yellow** (`#FFF3CD`) - nodes with conditional outgoing edges
+- **Dark** - START and END sentinels
 
 ## visNetwork (interactive, requires `visNetwork`)
 

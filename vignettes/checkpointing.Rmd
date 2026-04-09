@@ -17,9 +17,9 @@ library(puppeteeR)
 
 Checkpointing lets you persist workflow state after every node execution. This enables:
 
-- **Resuming interrupted runs** — restart after a crash without re-running completed nodes
-- **Human-in-the-loop** — pause, inspect, modify state, then resume
-- **Auditing** — replay state at any step
+- **Resuming interrupted runs** - restart after a crash without re-running completed nodes
+- **Human-in-the-loop** - pause, inspect, modify state, then resume
+- **Auditing** - replay state at any step
 
 ## Checkpointer types
 
@@ -56,7 +56,7 @@ runner$invoke(list(counter = 0L), config = list(thread_id = "demo"))
 runner$get_state("demo")
 ```
 
-## RDS checkpointer — survives across sessions
+## RDS checkpointer - survives across sessions
 
 ```{r rds, eval = FALSE}
 cp <- rds_checkpointer(dir = "~/my_checkpoints")
@@ -69,16 +69,16 @@ runner <- state_graph(schema) |>
   add_edge("step2", END) |>
   compile(checkpointer = cp)
 
-# Run 1 — say it crashes mid-way
+# Run 1 - say it crashes mid-way
 runner$invoke(list(counter = 5L), config = list(thread_id = "job-42"))
 
-# Run 2 — restart; runner resumes from last saved checkpoint
+# Run 2 - restart; runner resumes from last saved checkpoint
 runner$invoke(config = list(thread_id = "job-42"))
 ```
 
 Files are written as `~/my_checkpoints/job-42/step_1.rds`, `step_2.rds`, etc.
 
-## SQLite checkpointer — multiple threads
+## SQLite checkpointer - multiple threads
 
 ```{r sqlite, eval = FALSE}
 cp <- sqlite_checkpointer("workflow.sqlite")
@@ -121,7 +121,7 @@ runner <- state_graph(review_schema) |>
     list(draft = draft)
   }) |>
   add_node("check_approval", function(state, config) {
-    list()   # gate node — routes based on human-set `approved` flag
+    list()   # gate node - routes based on human-set `approved` flag
   }) |>
   add_node("revise", function(state, config) {
     prompt <- paste0(
@@ -157,7 +157,7 @@ runner$update_state("review-1", list(
   feedback = "Too abstract. Use a concrete analogy."
 ))
 
-# Step 4: resume — runner picks up from the checkpoint
+# Step 4: resume - runner picks up from the checkpoint
 runner$invoke(config = list(thread_id = "review-1"))
 runner$get_state("review-1")$draft
 ```

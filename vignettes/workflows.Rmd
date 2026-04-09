@@ -18,7 +18,7 @@ library(puppeteeR)
 puppeteeR ships three one-liner constructors for common multi-agent patterns. Each returns a
 compiled `GraphRunner` ready to invoke.
 
-## `sequential_workflow()` — linear chain
+## `sequential_workflow()` - linear chain
 
 Agents run in order. Each agent receives the previous agent's response as its input.
 
@@ -65,7 +65,7 @@ result2 <- runner2$invoke(list(
 ))
 ```
 
-## `supervisor_workflow()` — hub-and-spoke
+## `supervisor_workflow()` - hub-and-spoke
 
 A manager agent directs work to a pool of worker agents. After each worker finishes, control
 returns to the manager. The manager ends the workflow by replying `"DONE"`.
@@ -99,7 +99,7 @@ total manager turns.
 **Tip**: prompt the manager explicitly to name exactly one worker per turn. Ambiguous responses
 fall through to `"DONE"`.
 
-## `debate_workflow()` — round-robin with optional judge
+## `debate_workflow()` - round-robin with optional judge
 
 Agents take turns responding to each other in round-robin order. Useful for exploring multiple
 perspectives on a question, stress-testing an argument, or creative brainstorming.
@@ -161,5 +161,5 @@ result <- runner$invoke(list(messages = list("Should we adopt AI in healthcare?"
 | `supervisor_workflow()` | Dynamic delegation: manager decides which specialist to call |
 | `debate_workflow()` | Multiple perspectives: agents challenge each other |
 
-For anything more complex — handoffs, parallel fans, custom state channels — build the graph
+For anything more complex - handoffs, parallel fans, custom state channels - build the graph
 directly with `state_graph()`. See `vignette("custom-graphs")`.

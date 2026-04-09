@@ -1,6 +1,6 @@
 #' Generate a DOT language string for a StateGraph
 #'
-#' @param graph A [StateGraph] object. Not used directly — the graph's private
+#' @param graph A [StateGraph] object. Not used directly - the graph's private
 #'   fields are passed via the remaining arguments.
 #' @param nodes Named list of node specs.
 #' @param edges List of fixed edge specs.

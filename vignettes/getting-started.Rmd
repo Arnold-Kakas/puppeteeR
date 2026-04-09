@@ -30,7 +30,7 @@ shared state, does work, and writes updates back. Think LangGraph, but idiomatic
 
 ## 1. Define state
 
-Every graph has a **state schema** — a named set of channels, each with a default value and an
+Every graph has a **state schema** - a named set of channels, each with a default value and an
 optional reducer that controls how updates merge.
 
 ```{r state}
@@ -43,9 +43,9 @@ schema <- workflow_state(
 
 Three built-in reducers:
 
-- `reducer_overwrite()` — default, replaces old value with new value
-- `reducer_append()` — wraps new value in a list and appends to old list (great for message history)
-- `reducer_merge()` — shallow-merges named lists with `modifyList()`
+- `reducer_overwrite()` - default, replaces old value with new value
+- `reducer_append()` - wraps new value in a list and appends to old list (great for message history)
+- `reducer_merge()` - shallow-merges named lists with `modifyList()`
 
 ## 2. Build the graph
 
@@ -144,7 +144,7 @@ result$get("answer")
 
 ## 6. Streaming execution
 
-`stream()` returns a `coro` generator that yields after each node — useful for showing progress.
+`stream()` returns a `coro` generator that yields after each node - useful for showing progress.
 
 ```{r stream, eval = FALSE}
 gen <- runner3$stream(list(query = "Explain quantum entanglement briefly."))

@@ -29,6 +29,6 @@ make_mock_agent <- function(name = "test_agent", responses = "mock response") {
 skip_if_no_api_key <- function(var = "ANTHROPIC_API_KEY") {
   testthat::skip_if(
     nchar(Sys.getenv(var)) == 0L,
-    message = paste("No", var, "found — skipping integration test.")
+    message = paste("No", var, "found - skipping integration test.")
   )
 }

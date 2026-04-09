@@ -10,7 +10,7 @@ Description: Graph-based workflow engine for orchestrating multiple large langua
     Supports checkpointing, termination conditions, visualization, and
     convenience workflow patterns (sequential, supervisor, debate).
 License: MIT + file LICENSE
-URL: https://github.com/Arnold-Kakas/puppeteeR
+URL: https://github.com/Arnold-Kakas/puppeteeR, https://arnold-kakas.github.io/puppeteeR/
 BugReports: https://github.com/Arnold-Kakas/puppeteeR/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
