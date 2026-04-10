@@ -29,29 +29,25 @@ result$get("messages")
 The default state schema has a single `messages` channel with
 [`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md).
 Each agent’s response is appended, so the final state contains the full
-conversation chain.
-
-You can supply a custom schema if you need additional channels:
+conversation chain — one entry per turn (initial prompt + one per
+agent).
 
 ``` r
-my_schema <- workflow_state(
-  messages = list(default = list(), reducer = reducer_append()),
-  topic    = list(default = "")
-)
+msgs <- result$get("messages")
+length(msgs)      # 4: initial prompt + drafter + reviewer + polisher
 
-runner2 <- sequential_workflow(
-  agents       = list(
-    researcher = agent("researcher", chat_anthropic()),
-    writer     = agent("writer",     chat_anthropic())
-  ),
-  state_schema = my_schema
-)
-
-result2 <- runner2$invoke(list(
-  topic    = "reinforcement learning",
-  messages = list("Write about reinforcement learning.")
-))
+# Print the transcript
+for (msg in msgs) cat("---\n", as.character(msg), "\n\n")
 ```
+
+**Note on `state_schema`**: the `state_schema` parameter exists but is
+of limited use for `sequential_workflow` because the built-in node
+functions only ever read and write the `messages` channel. Any extra
+channels you add to the schema are invisible to the agents. If you need
+agents that read from or write to custom channels, use
+[`state_graph()`](https://arnold-kakas.github.io/puppeteeR/reference/state_graph.md)
+directly and define your own node functions. See
+[`vignette("custom-graphs")`](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md).
 
 ## `supervisor_workflow()` - hub-and-spoke
 
@@ -74,7 +70,7 @@ runner <- supervisor_workflow(
     writer     = agent("writer",     chat_anthropic(),
                        instructions = "Turn research notes into a readable article.")
   ),
-  max_rounds = 6L
+  max_rounds = 10L
 )
 
 result <- runner$invoke(list(messages = list("Produce an article on quantum computing.")))
@@ -83,8 +79,12 @@ result$get("messages")
 
 **How routing works**: after each manager turn, the supervisor searches
 the manager’s response text for a worker name. If none is found it
-routes to `"DONE"`. The `max_rounds` safety valve limits total manager
-turns.
+routes to `"DONE"`.
+
+**`max_rounds` counts total node executions** — manager turns and worker
+turns combined. With 2 workers, a full delegation cycle (manager →
+worker → manager) consumes 3 turns. Set `max_rounds` generously: `10L`
+gives room for roughly 3 full delegations plus a `"DONE"` turn.
 
 **Tip**: prompt the manager explicitly to name exactly one worker per
 turn. Ambiguous responses fall through to `"DONE"`.
@@ -142,6 +142,12 @@ runner <- debate_workflow(
 )
 
 result <- runner$invoke(list(messages = list("Should we adopt AI in healthcare?")))
+
+# Full transcript including judge verdicts
+for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n\n")
+
+# The final judge_verdict channel shows why the debate ended
+result$get("judge_verdict")   # "done" or "continue"
 ```
 
 ## `advisor_workflow()` — worker + advisor feedback loop
@@ -184,10 +190,14 @@ version — the advisor evaluates this, not the full message history.
 `advisor_feedback` (overwrite) carries the most recent revision notes.
 `messages` (append) is a full audit trail of every draft and verdict.
 
-**Tip**: be explicit in the advisor’s instructions about the reply
-format. The routing reads for a response that starts with `"approved"`
-or `"revise:"` — a vague verdict like `"looks good"` will be treated as
-a revision request.
+**Tip**: the routing checks whether the advisor’s response starts with
+`"approved"` (case insensitive). *Any* response that does not start with
+`"approved"` triggers a revision — there is no special `"revise:"`
+keyword required for routing. However, the recommended format
+`"revise: <feedback>"` improves feedback quality: the node strips the
+`"revise: "` prefix and passes the remainder to the worker as targeted
+feedback. A response like `"needs more examples"` also triggers revision
+but is passed to the worker verbatim as the feedback string.
 
 ## `planner_workflow()` — Opus plans, Haiku executes
 

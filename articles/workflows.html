@@ -96,26 +96,22 @@ response as its input.</p>
 <span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span></span></code></pre></div>
 <p>The default state schema has a single <code>messages</code> channel
 with <code><a href="../reference/reducer_append.html">reducer_append()</a></code>. Each agent’s response is appended,
-so the final state contains the full conversation chain.</p>
-<p>You can supply a custom schema if you need additional channels:</p>
+so the final state contains the full conversation chain — one entry per
+turn (initial prompt + one per agent).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">my_schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
-<span>  messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_append.html">reducer_append</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  topic    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">msgs</span> <span class="op">&lt;-</span> <span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">msgs</span><span class="op">)</span>      <span class="co"># 4: initial prompt + drafter + reviewer + polisher</span></span>
 <span></span>
-<span><span class="va">runner2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sequential_workflow.html">sequential_workflow</a></span><span class="op">(</span></span>
-<span>  agents       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    researcher <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"researcher"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    writer     <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>,     <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  state_schema <span class="op">=</span> <span class="va">my_schema</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="va">runner2</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  topic    <span class="op">=</span> <span class="st">"reinforcement learning"</span>,</span>
-<span>  messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Write about reinforcement learning."</span><span class="op">)</span></span>
-<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Print the transcript</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">msg</span> <span class="kw">in</span> <span class="va">msgs</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"---\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>, <span class="st">"\n\n"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Note on <code>state_schema</code></strong>: the
+<code>state_schema</code> parameter exists but is of limited use for
+<code>sequential_workflow</code> because the built-in node functions
+only ever read and write the <code>messages</code> channel. Any extra
+channels you add to the schema are invisible to the agents. If you need
+agents that read from or write to custom channels, use
+<code><a href="../reference/state_graph.html">state_graph()</a></code> directly and define your own node functions.
+See <code><a href="../articles/custom-graphs.html">vignette("custom-graphs")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="supervisor_workflow---hub-and-spoke">
@@ -139,15 +135,19 @@ workflow by replying <code>"DONE"</code>.</p>
 <span>    writer     <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>,     <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                       instructions <span class="op">=</span> <span class="st">"Turn research notes into a readable article."</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  max_rounds <span class="op">=</span> <span class="fl">6L</span></span>
+<span>  max_rounds <span class="op">=</span> <span class="fl">10L</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Produce an article on quantum computing."</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span></span></code></pre></div>
 <p><strong>How routing works</strong>: after each manager turn, the
 supervisor searches the manager’s response text for a worker name. If
-none is found it routes to <code>"DONE"</code>. The
-<code>max_rounds</code> safety valve limits total manager turns.</p>
+none is found it routes to <code>"DONE"</code>.</p>
+<p><strong><code>max_rounds</code> counts total node executions</strong>
+— manager turns and worker turns combined. With 2 workers, a full
+delegation cycle (manager → worker → manager) consumes 3 turns. Set
+<code>max_rounds</code> generously: <code>10L</code> gives room for
+roughly 3 full delegations plus a <code>"DONE"</code> turn.</p>
 <p><strong>Tip</strong>: prompt the manager explicitly to name exactly
 one worker per turn. Ambiguous responses fall through to
 <code>"DONE"</code>.</p>
@@ -206,7 +206,13 @@ settled. The judge should reply <code>"continue"</code> or
 <span>  max_rounds <span class="op">=</span> <span class="fl">5L</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Should we adopt AI in healthcare?"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Should we adopt AI in healthcare?"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Full transcript including judge verdicts</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">msg</span> <span class="kw">in</span> <span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"---\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>, <span class="st">"\n\n"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The final judge_verdict channel shows why the debate ended</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"judge_verdict"</span><span class="op">)</span>   <span class="co"># "done" or "continue"</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -250,10 +256,16 @@ this, not the full message history. <code>advisor_feedback</code>
 (overwrite) carries the most recent revision notes.
 <code>messages</code> (append) is a full audit trail of every draft and
 verdict.</p>
-<p><strong>Tip</strong>: be explicit in the advisor’s instructions about
-the reply format. The routing reads for a response that starts with
-<code>"approved"</code> or <code>"revise:"</code> — a vague verdict like
-<code>"looks good"</code> will be treated as a revision request.</p>
+<p><strong>Tip</strong>: the routing checks whether the advisor’s
+response starts with <code>"approved"</code> (case insensitive).
+<em>Any</em> response that does not start with <code>"approved"</code>
+triggers a revision — there is no special <code>"revise:"</code> keyword
+required for routing. However, the recommended format
+<code>"revise: &lt;feedback&gt;"</code> improves feedback quality: the
+node strips the <code>"revise: "</code> prefix and passes the remainder
+to the worker as targeted feedback. A response like
+<code>"needs more examples"</code> also triggers revision but is passed
+to the worker verbatim as the feedback string.</p>
 </div>
 <div class="section level2">
 <h2 id="planner_workflow-opus-plans-haiku-executes">
