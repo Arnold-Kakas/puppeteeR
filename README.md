@@ -9,7 +9,7 @@
 
 Built on [ellmer](https://ellmer.tidyverse.org/) for LLM access. Inspired by [LangGraph](https://github.com/langchain-ai/langgraph) but designed to feel like idiomatic R.
 
-> **Note:** This package is not related to Google's puppeteer browser automation library for Node.js. The name refers to orchestrating agents like a puppeteeR controlling characters on a stage.
+> **Note:** This package is not related to Google's puppeteer browser automation library for Node.js. The name refers to orchestrating agents like a puppeteer controlling characters on a stage.
 
 ## Installation
 
