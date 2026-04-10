@@ -528,27 +528,6 @@ planner_workflow <- function(planner, workers, evaluator = NULL,
     })
   }
 
-  dispatch_route_map <- stats::setNames(as.list(worker_names), worker_names)
-  dispatch_route_map[["__evaluator__"]] <- if (!is.null(evaluator)) "evaluator" else END
-
-  g$add_conditional_edge(
-    "dispatcher",
-    function(state) {
-      plan <- state$get("plan")
-      idx  <- state$get("plan_index")
-      if (idx > length(plan)) return("__evaluator__")
-      worker <- state$get("current_worker")
-      if (!worker %in% names(dispatch_route_map)) {
-        cli::cli_abort(
-          "Plan step specifies unknown worker {.val {worker}}.",
-          "i" = "Available workers: {.val {names(workers)}}"
-        )
-      }
-      worker
-    },
-    dispatch_route_map
-  )
-
   if (!is.null(evaluator)) {
     evaluator_fn <- function(state, config) {
       msgs    <- state$get("messages")
@@ -578,6 +557,27 @@ planner_workflow <- function(planner, workers, evaluator = NULL,
       list(done = END, replan = "planner")
     )
   }
+
+  dispatch_route_map <- stats::setNames(as.list(worker_names), worker_names)
+  dispatch_route_map[["__evaluator__"]] <- if (!is.null(evaluator)) "evaluator" else END
+
+  g$add_conditional_edge(
+    "dispatcher",
+    function(state) {
+      plan <- state$get("plan")
+      idx  <- state$get("plan_index")
+      if (idx > length(plan)) return("__evaluator__")
+      worker <- state$get("current_worker")
+      if (!worker %in% names(dispatch_route_map)) {
+        cli::cli_abort(
+          "Plan step specifies unknown worker {.val {worker}}.",
+          "i" = "Available workers: {.val {names(workers)}}"
+        )
+      }
+      worker
+    },
+    dispatch_route_map
+  )
 
   g$add_edge(START, "planner")
   g$add_edge("planner", "dispatcher")
