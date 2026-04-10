@@ -26,7 +26,8 @@ sequential_workflow <- function(agents, state_schema = NULL) {
 
   if (is.null(state_schema)) {
     state_schema <- workflow_state(
-      messages = list(default = list(), reducer = reducer_append())
+      messages = list(default = list(), reducer = reducer_append()),
+      output   = list(default = "")
     )
   }
 
@@ -40,7 +41,7 @@ sequential_workflow <- function(agents, state_schema = NULL) {
         msgs <- state$get("messages")
         last <- if (length(msgs) > 0L) msgs[[length(msgs)]] else ""
         response <- config$agents[[agent_nm]]$chat(as.character(last))
-        list(messages = response)
+        list(messages = response, output = as.character(response))
       }
       g$add_node(agent_nm, node_fn)
     })
@@ -54,7 +55,7 @@ sequential_workflow <- function(agents, state_schema = NULL) {
   }
   g$add_edge(agent_names[[length(agent_names)]], END)
 
-  g$compile(agents = agents)
+  g$compile(agents = agents, output_channel = "output")
 }
 
 #' Build a supervisor workflow
@@ -95,7 +96,8 @@ supervisor_workflow <- function(manager, workers, max_rounds = 10L,
   if (is.null(state_schema)) {
     state_schema <- workflow_state(
       messages      = list(default = list(), reducer = reducer_append()),
-      current_route = list(default = "")
+      current_route = list(default = ""),
+      output        = list(default = "")
     )
   }
 
@@ -118,7 +120,7 @@ supervisor_workflow <- function(manager, workers, max_rounds = 10L,
         msgs    <- state$get("messages")
         context <- paste(vapply(msgs, as.character, character(1L)), collapse = "\n")
         response <- config$agents[[worker_nm]]$chat(context)
-        list(messages = response)
+        list(messages = response, output = as.character(response))
       }
       g$add_node(worker_nm, worker_fn)
       g$add_edge(worker_nm, "manager")
@@ -143,8 +145,9 @@ supervisor_workflow <- function(manager, workers, max_rounds = 10L,
   g$add_edge(START, "manager")
 
   g$compile(
-    agents      = all_agents,
-    termination = max_turns(max_rounds)
+    agents         = all_agents,
+    termination    = max_turns(max_rounds),
+    output_channel = "output"
   )
 }
 
@@ -181,11 +184,21 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
     cli::cli_abort("All agents must be named.")
   }
 
+  n_agents <- length(agent_names)
+
   if (is.null(state_schema)) {
-    state_schema <- workflow_state(
-      messages      = list(default = list(), reducer = reducer_append()),
-      judge_verdict = list(default = "continue")
-    )
+    if (!is.null(judge)) {
+      state_schema <- workflow_state(
+        messages      = list(default = list(), reducer = reducer_append()),
+        judge_verdict = list(default = "continue"),
+        output        = list(default = "")
+      )
+    } else {
+      state_schema <- workflow_state(
+        messages = list(default = list(), reducer = reducer_append()),
+        output   = list(default = list(), reducer = reducer_last_n(n_agents))
+      )
+    }
   }
 
   all_agents <- agents
@@ -200,7 +213,7 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
         msgs <- state$get("messages")
         context <- paste(vapply(msgs, as.character, character(1)), collapse = "\n")
         response <- config$agents[[agent_nm]]$chat(context)
-        list(messages = response)
+        list(messages = response, output = response)
       }
       g$add_node(agent_nm, debate_fn)
     })
@@ -216,9 +229,11 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
         paste0(context, "\n\nReply 'continue' or 'done'.")
       )
       verdict_str <- tolower(trimws(as.character(verdict)))
+      is_done     <- grepl("done", verdict_str, fixed = TRUE)
       list(
         messages      = verdict,
-        judge_verdict = if (grepl("done", verdict_str, fixed = TRUE)) "done" else "continue"
+        judge_verdict = if (is_done) "done" else "continue",
+        output        = if (is_done) as.character(verdict) else state$get("output")
       )
     }
     g$add_node("judge", judge_fn)
@@ -245,7 +260,7 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
   }
 
   termination <- max_turns(max_rounds * length(agent_names))
-  g$compile(agents = all_agents, termination = termination)
+  g$compile(agents = all_agents, termination = termination, output_channel = "output")
 }
 
 #' Build an advisor workflow
@@ -355,8 +370,9 @@ advisor_workflow <- function(worker, advisor, max_revisions = 3L,
   )
 
   g$compile(
-    agents      = list(worker = worker, advisor = advisor),
-    termination = max_turns(2L * (max_revisions + 1L))
+    agents         = list(worker = worker, advisor = advisor),
+    termination    = max_turns(2L * (max_revisions + 1L)),
+    output_channel = "latest_draft"
   )
 }
 
@@ -583,7 +599,8 @@ planner_workflow <- function(planner, workers, evaluator = NULL,
   g$add_edge("planner", "dispatcher")
 
   g$compile(
-    agents      = all_agents,
-    termination = max_turns((max_replans + 1L) * (max_steps + 3L))
+    agents         = all_agents,
+    termination    = max_turns((max_replans + 1L) * (max_steps + 3L)),
+    output_channel = "results"
   )
 }

@@ -17,6 +17,10 @@ Named list.
 Invisibly, \code{self}.
 
 Character vector.
+
+The value of the output channel.
+
+Invisibly, \code{self}.
 }
 \description{
 Mutable shared state passed between graph nodes. Each named channel has a
@@ -40,6 +44,8 @@ reconstruct a fresh state on each \verb{$invoke()} call.}
 \item \href{#method-WorkflowState-snapshot}{\code{WorkflowState$snapshot()}}
 \item \href{#method-WorkflowState-restore}{\code{WorkflowState$restore()}}
 \item \href{#method-WorkflowState-keys}{\code{WorkflowState$keys()}}
+\item \href{#method-WorkflowState-output}{\code{WorkflowState$output()}}
+\item \href{#method-WorkflowState-set_output_channel}{\code{WorkflowState$set_output_channel()}}
 \item \href{#method-WorkflowState-print}{\code{WorkflowState$print()}}
 \item \href{#method-WorkflowState-clone}{\code{WorkflowState$clone()}}
 }
@@ -154,6 +160,38 @@ Return the names of all channels.
 \if{html}{\out{<div class="r">}}\preformatted{WorkflowState$keys()}\if{html}{\out{</div>}}
 }
 
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-WorkflowState-output"></a>}}
+\if{latex}{\out{\hypertarget{method-WorkflowState-output}{}}}
+\subsection{Method \code{output()}}{
+Return the primary output of the workflow.
+
+Convenience wrapper around \verb{$get()} for the channel nominated as the
+output channel when the graph was compiled. For workflows that accumulate
+a list (e.g. \code{messages}), returns the full list; use \verb{[[length(...)]]}
+to extract the final entry.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{WorkflowState$output()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-WorkflowState-set_output_channel"></a>}}
+\if{latex}{\out{\hypertarget{method-WorkflowState-set_output_channel}{}}}
+\subsection{Method \code{set_output_channel()}}{
+Set the output channel. Called internally by \link{GraphRunner}.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{WorkflowState$set_output_channel(channel)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{channel}}{Character. Channel name.}
+}
+\if{html}{\out{</div>}}
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-WorkflowState-print"></a>}}

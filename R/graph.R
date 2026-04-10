@@ -124,8 +124,12 @@ StateGraph <- R6::R6Class(
     #' @param checkpointer A [Checkpointer] object or `NULL`.
     #' @param termination A termination condition (from [max_turns()] etc.) or
     #'   `NULL`.
+    #' @param output_channel Character or `NULL`. The channel whose value is
+    #'   returned by `WorkflowState$output()`. If `NULL`, `$output()` will
+    #'   error unless set by a workflow constructor.
     #' @returns A [GraphRunner] object ready to execute.
-    compile = function(agents = list(), checkpointer = NULL, termination = NULL) {
+    compile = function(agents = list(), checkpointer = NULL, termination = NULL,
+                       output_channel = NULL) {
       private$.validate(has_termination = !is.null(termination))
       GraphRunner$new(
         nodes             = private$.nodes,
@@ -134,7 +138,8 @@ StateGraph <- R6::R6Class(
         state_schema      = private$.state_schema$schema,
         agents            = agents,
         checkpointer      = checkpointer,
-        termination       = termination
+        termination       = termination,
+        output_channel    = output_channel
       )
     },
 
@@ -300,6 +305,8 @@ add_edge <- function(graph, from, to) {
 #' @param agents Named list of `Agent` objects.
 #' @param checkpointer A [Checkpointer] or `NULL`.
 #' @param termination A termination condition or `NULL`.
+#' @param output_channel Character or `NULL`. Channel returned by
+#'   `WorkflowState$output()` after `$invoke()`.
 #' @returns A [GraphRunner] object.
 #' @export
 #' @examples
@@ -308,9 +315,11 @@ add_edge <- function(graph, from, to) {
 #'   add_node("step1", function(state, config) list(result = "done")) |>
 #'   add_edge(START, "step1") |>
 #'   add_edge("step1", END) |>
-#'   compile()
-compile <- function(graph, agents = list(), checkpointer = NULL, termination = NULL) {
-  graph$compile(agents = agents, checkpointer = checkpointer, termination = termination)
+#'   compile(output_channel = "result")
+compile <- function(graph, agents = list(), checkpointer = NULL, termination = NULL,
+                    output_channel = NULL) {
+  graph$compile(agents = agents, checkpointer = checkpointer, termination = termination,
+                output_channel = output_channel)
 }
 
 #' Add a conditional edge to a graph

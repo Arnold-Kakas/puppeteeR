@@ -149,7 +149,12 @@ Shortcut to set the graph entry node.
 \subsection{Method \code{compile()}}{
 Validate and compile the graph into a \link{GraphRunner}.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{StateGraph$compile(agents = list(), checkpointer = NULL, termination = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{StateGraph$compile(
+  agents = list(),
+  checkpointer = NULL,
+  termination = NULL,
+  output_channel = NULL
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -162,6 +167,10 @@ Validate and compile the graph into a \link{GraphRunner}.
 
 \item{\code{termination}}{A termination condition (from \code{\link[=max_turns]{max_turns()}} etc.) or
 \code{NULL}.}
+
+\item{\code{output_channel}}{Character or \code{NULL}. The channel whose value is
+returned by \code{WorkflowState$output()}. If \code{NULL}, \verb{$output()} will
+error unless set by a workflow constructor.}
 }
 \if{html}{\out{</div>}}
 }

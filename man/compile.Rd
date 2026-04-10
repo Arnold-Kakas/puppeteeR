@@ -4,7 +4,13 @@
 \alias{compile}
 \title{Compile a StateGraph into a GraphRunner}
 \usage{
-compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
+compile(
+  graph,
+  agents = list(),
+  checkpointer = NULL,
+  termination = NULL,
+  output_channel = NULL
+)
 }
 \arguments{
 \item{graph}{A \link{StateGraph} object.}
@@ -14,6 +20,9 @@ compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
 \item{checkpointer}{A \link{Checkpointer} or \code{NULL}.}
 
 \item{termination}{A termination condition or \code{NULL}.}
+
+\item{output_channel}{Character or \code{NULL}. Channel returned by
+\code{WorkflowState$output()} after \verb{$invoke()}.}
 }
 \value{
 A \link{GraphRunner} object.
@@ -27,5 +36,5 @@ runner <- state_graph(schema) |>
   add_node("step1", function(state, config) list(result = "done")) |>
   add_edge(START, "step1") |>
   add_edge("step1", END) |>
-  compile()
+  compile(output_channel = "result")
 }

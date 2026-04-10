@@ -17,8 +17,11 @@ GraphRunner <- R6::R6Class(
     #' @param agents Named list of `Agent` objects.
     #' @param checkpointer A [Checkpointer] or `NULL`.
     #' @param termination A `termination_condition` or `NULL`.
+    #' @param output_channel Character or `NULL`. Name of the channel returned
+    #'   by `WorkflowState$output()` after `$invoke()`.
     initialize = function(nodes, edges, conditional_edges,
-                          state_schema, agents, checkpointer, termination) {
+                          state_schema, agents, checkpointer, termination,
+                          output_channel = NULL) {
       private$.nodes             <- nodes
       private$.edges             <- edges
       private$.conditional_edges <- conditional_edges
@@ -26,6 +29,7 @@ GraphRunner <- R6::R6Class(
       private$.agents            <- agents
       private$.checkpointer      <- checkpointer
       private$.termination       <- termination
+      private$.output_channel    <- output_channel
       private$.adjacency         <- private$.build_adjacency()
     },
 
@@ -215,6 +219,7 @@ GraphRunner <- R6::R6Class(
     .agents            = list(),
     .checkpointer      = NULL,
     .termination       = NULL,
+    .output_channel    = NULL,
 
     .build_adjacency = function() {
       adj <- list()
@@ -235,6 +240,9 @@ GraphRunner <- R6::R6Class(
 
     .init_state = function(initial_state) {
       state <- WorkflowState$new(private$.state_schema)
+      if (!is.null(private$.output_channel)) {
+        state$set_output_channel(private$.output_channel)
+      }
       if (length(initial_state) > 0L) state$update(initial_state)
       state
     },

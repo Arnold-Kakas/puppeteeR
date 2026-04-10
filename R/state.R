@@ -128,6 +128,32 @@ WorkflowState <- R6::R6Class(
       names(private$.data)
     },
 
+    #' @description Return the primary output of the workflow.
+    #'
+    #' Convenience wrapper around `$get()` for the channel nominated as the
+    #' output channel when the graph was compiled. For workflows that accumulate
+    #' a list (e.g. `messages`), returns the full list; use `[[length(...)]]`
+    #' to extract the final entry.
+    #'
+    #' @returns The value of the output channel.
+    output = function() {
+      if (is.null(private$.output_channel)) {
+        cli::cli_abort(c(
+          "No output channel is configured for this workflow.",
+          "i" = "Set {.arg output_channel} in {.fn compile}, or use {.fn $get} directly."
+        ))
+      }
+      self$get(private$.output_channel)
+    },
+
+    #' @description Set the output channel. Called internally by [GraphRunner].
+    #' @param channel Character. Channel name.
+    #' @returns Invisibly, `self`.
+    set_output_channel = function(channel) {
+      private$.output_channel <- channel
+      invisible(self)
+    },
+
     #' @description Print a summary of the state.
     #' @param ... Ignored.
     print = function(...) {
@@ -154,7 +180,8 @@ WorkflowState <- R6::R6Class(
   private = list(
     .data = list(),
     .reducers = list(),
-    .schema = list()
+    .schema = list(),
+    .output_channel = NULL
   )
 )
 

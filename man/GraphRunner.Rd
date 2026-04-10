@@ -54,7 +54,8 @@ Initialise the runner. Called internally by \code{StateGraph$compile()}.
   state_schema,
   agents,
   checkpointer,
-  termination
+  termination,
+  output_channel = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -74,6 +75,9 @@ Initialise the runner. Called internally by \code{StateGraph$compile()}.
 \item{\code{checkpointer}}{A \link{Checkpointer} or \code{NULL}.}
 
 \item{\code{termination}}{A \code{termination_condition} or \code{NULL}.}
+
+\item{\code{output_channel}}{Character or \code{NULL}. Name of the channel returned
+by \code{WorkflowState$output()} after \verb{$invoke()}.}
 }
 \if{html}{\out{</div>}}
 }
