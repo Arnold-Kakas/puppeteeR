@@ -67,7 +67,8 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
       state_schema,
       agents,
       checkpointer,
-      termination
+      termination,
+      output_channel = NULL
     )
 
 #### Arguments
@@ -103,6 +104,11 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
 - `termination`:
 
   A `termination_condition` or `NULL`.
+
+- `output_channel`:
+
+  Character or `NULL`. Name of the channel returned by
+  `WorkflowState$output()` after `$invoke()`.
 
 ------------------------------------------------------------------------
 

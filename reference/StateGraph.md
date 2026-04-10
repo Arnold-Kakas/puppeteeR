@@ -175,7 +175,12 @@ Validate and compile the graph into a
 
 #### Usage
 
-    StateGraph$compile(agents = list(), checkpointer = NULL, termination = NULL)
+    StateGraph$compile(
+      agents = list(),
+      checkpointer = NULL,
+      termination = NULL,
+      output_channel = NULL
+    )
 
 #### Arguments
 
@@ -195,6 +200,12 @@ Validate and compile the graph into a
   A termination condition (from
   [`max_turns()`](https://arnold-kakas.github.io/puppeteeR/reference/max_turns.md)
   etc.) or `NULL`.
+
+- `output_channel`:
+
+  Character or `NULL`. The channel whose value is returned by
+  `WorkflowState$output()`. If `NULL`, `$output()` will error unless set
+  by a workflow constructor.
 
 ------------------------------------------------------------------------
 

@@ -59,6 +59,8 @@ default value and a reducer function that controls how updates are merged.</p>
 <p>Named list.</p>
 <p>Invisibly, <code>self</code>.</p>
 <p>Character vector.</p>
+<p>The value of the output channel.</p>
+<p>Invisibly, <code>self</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="active-bindings">Active bindings<a class="anchor" aria-label="anchor" href="#active-bindings"></a></h2>
@@ -82,6 +84,8 @@ reconstruct a fresh state on each <code>$invoke()</code> call.</p></dd>
 <li><p><a href="#method-WorkflowState-snapshot"><code>WorkflowState$snapshot()</code></a></p></li>
 <li><p><a href="#method-WorkflowState-restore"><code>WorkflowState$restore()</code></a></p></li>
 <li><p><a href="#method-WorkflowState-keys"><code>WorkflowState$keys()</code></a></p></li>
+<li><p><a href="#method-WorkflowState-output"><code>WorkflowState$output()</code></a></p></li>
+<li><p><a href="#method-WorkflowState-set_output_channel"><code>WorkflowState$set_output_channel()</code></a></p></li>
 <li><p><a href="#method-WorkflowState-print"><code>WorkflowState$print()</code></a></p></li>
 <li><p><a href="#method-WorkflowState-clone"><code>WorkflowState$clone()</code></a></p></li>
 </ul></div><p></p><hr><a id="method-WorkflowState-new"></a><div class="section">
@@ -188,15 +192,43 @@ silently ignored. Unknown keys raise an error (typo protection).</p></dd>
 </div>
 
 
-</div><p></p><hr><a id="method-WorkflowState-print"></a><div class="section">
-<h3 id="method-print-">Method <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code><a class="anchor" aria-label="anchor" href="#method-print-"></a></h3>
-<p>Print a summary of the state.</p><div class="section">
+</div><p></p><hr><a id="method-WorkflowState-output"></a><div class="section">
+<h3 id="method-output-">Method <code>output()</code><a class="anchor" aria-label="anchor" href="#method-output-"></a></h3>
+<p>Return the primary output of the workflow.</p>
+<p>Convenience wrapper around <code>$get()</code> for the channel nominated as the
+output channel when the graph was compiled. For workflows that accumulate
+a list (e.g. <code>messages</code>), returns the full list; use <code>[[length(...)]]</code>
+to extract the final entry.</p><div class="section">
 <h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">WorkflowState</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">WorkflowState</span><span class="op">$</span><span class="fu">output</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+
+</div><p></p><hr><a id="method-WorkflowState-set_output_channel"></a><div class="section">
+<h3 id="method-set-output-channel-">Method <code>set_output_channel()</code><a class="anchor" aria-label="anchor" href="#method-set-output-channel-"></a></h3>
+<p>Set the output channel. Called internally by <a href="GraphRunner.html">GraphRunner</a>.</p><div class="section">
+<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">WorkflowState</span><span class="op">$</span><span class="fu">set_output_channel</span><span class="op">(</span><span class="va">channel</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
 <h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>channel</code></dt>
+<dd><p>Character. Channel name.</p></dd>
+
+
+</dl><p></p></div>
+</div>
+
+</div><p></p><hr><a id="method-WorkflowState-print"></a><div class="section">
+<h3 id="method-print-">Method <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code><a class="anchor" aria-label="anchor" href="#method-print-"></a></h3>
+<p>Print a summary of the state.</p><div class="section">
+<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">WorkflowState</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>Ignored.</p></dd>
 
@@ -207,12 +239,12 @@ silently ignored. Unknown keys raise an error (typo protection).</p></dd>
 </div><p></p><hr><a id="method-WorkflowState-clone"></a><div class="section">
 <h3 id="method-clone-">Method <code>clone()</code><a class="anchor" aria-label="anchor" href="#method-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<h4 id="usage-10">Usage<a class="anchor" aria-label="anchor" href="#usage-10"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">WorkflowState</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
 

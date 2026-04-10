@@ -192,7 +192,12 @@ present in <code>route_map</code>.</p></dd>
 <h3 id="method-compile-">Method <code><a href="compile.html">compile()</a></code><a class="anchor" aria-label="anchor" href="#method-compile-"></a></h3>
 <p>Validate and compile the graph into a <a href="GraphRunner.html">GraphRunner</a>.</p><div class="section">
 <h4 id="usage-5">Usage<a class="anchor" aria-label="anchor" href="#usage-5"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">StateGraph</span><span class="op">$</span><span class="fu">compile</span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, checkpointer <span class="op">=</span> <span class="cn">NULL</span>, termination <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">StateGraph</span><span class="op">$</span><span class="fu">compile</span><span class="op">(</span></span>
+<span>  agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  checkpointer <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  termination <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  output_channel <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
@@ -209,6 +214,12 @@ present in <code>route_map</code>.</p></dd>
 <dt><code>termination</code></dt>
 <dd><p>A termination condition (from <code><a href="max_turns.html">max_turns()</a></code> etc.) or
 <code>NULL</code>.</p></dd>
+
+
+<dt><code>output_channel</code></dt>
+<dd><p>Character or <code>NULL</code>. The channel whose value is
+returned by <code>WorkflowState$output()</code>. If <code>NULL</code>, <code>$output()</code> will
+error unless set by a workflow constructor.</p></dd>
 
 
 </dl><p></p></div>

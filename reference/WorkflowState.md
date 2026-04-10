@@ -20,6 +20,10 @@ Invisibly, `self`.
 
 Character vector.
 
+The value of the output channel.
+
+Invisibly, `self`.
+
 ## Active bindings
 
 - `schema`:
@@ -45,6 +49,10 @@ Character vector.
 - [`WorkflowState$restore()`](#method-WorkflowState-restore)
 
 - [`WorkflowState$keys()`](#method-WorkflowState-keys)
+
+- [`WorkflowState$output()`](#method-WorkflowState-output)
+
+- [`WorkflowState$set_output_channel()`](#method-WorkflowState-set_output_channel)
 
 - [`WorkflowState$print()`](#method-WorkflowState-print)
 
@@ -160,6 +168,38 @@ Return the names of all channels.
 #### Usage
 
     WorkflowState$keys()
+
+------------------------------------------------------------------------
+
+### Method `output()`
+
+Return the primary output of the workflow.
+
+Convenience wrapper around `$get()` for the channel nominated as the
+output channel when the graph was compiled. For workflows that
+accumulate a list (e.g. `messages`), returns the full list; use
+`[[length(...)]]` to extract the final entry.
+
+#### Usage
+
+    WorkflowState$output()
+
+------------------------------------------------------------------------
+
+### Method `set_output_channel()`
+
+Set the output channel. Called internally by
+[GraphRunner](https://arnold-kakas.github.io/puppeteeR/reference/GraphRunner.md).
+
+#### Usage
+
+    WorkflowState$set_output_channel(channel)
+
+#### Arguments
+
+- `channel`:
+
+  Character. Channel name.
 
 ------------------------------------------------------------------------
 

@@ -91,7 +91,8 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 <span>  <span class="va">state_schema</span>,</span>
 <span>  <span class="va">agents</span>,</span>
 <span>  <span class="va">checkpointer</span>,</span>
-<span>  <span class="va">termination</span></span>
+<span>  <span class="va">termination</span>,</span>
+<span>  output_channel <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -123,6 +124,11 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 
 <dt><code>termination</code></dt>
 <dd><p>A <code>termination_condition</code> or <code>NULL</code>.</p></dd>
+
+
+<dt><code>output_channel</code></dt>
+<dd><p>Character or <code>NULL</code>. Name of the channel returned
+by <code>WorkflowState$output()</code> after <code>$invoke()</code>.</p></dd>
 
 
 </dl><p></p></div>

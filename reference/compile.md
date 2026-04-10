@@ -5,7 +5,13 @@ Compile a StateGraph into a GraphRunner
 ## Usage
 
 ``` r
-compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
+compile(
+  graph,
+  agents = list(),
+  checkpointer = NULL,
+  termination = NULL,
+  output_channel = NULL
+)
 ```
 
 ## Arguments
@@ -30,6 +36,11 @@ compile(graph, agents = list(), checkpointer = NULL, termination = NULL)
 
   A termination condition or `NULL`.
 
+- output_channel:
+
+  Character or `NULL`. Channel returned by `WorkflowState$output()`
+  after `$invoke()`.
+
 ## Value
 
 A
@@ -44,5 +55,5 @@ runner <- state_graph(schema) |>
   add_node("step1", function(state, config) list(result = "done")) |>
   add_edge(START, "step1") |>
   add_edge("step1", END) |>
-  compile()
+  compile(output_channel = "result")
 ```
