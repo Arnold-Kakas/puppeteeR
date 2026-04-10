@@ -58,7 +58,8 @@ Create a new WorkflowState.
 \describe{
 \item{\code{schema}}{Named list where each element is
 \verb{list(default = <value>, reducer = <function>)}. If \code{reducer} is
-omitted, \code{\link[=reducer_overwrite]{reducer_overwrite()}} is used.}
+omitted, \code{\link[=reducer_last_n]{reducer_last_n()}} with a window of 20 is used for list
+channels and \code{\link[=reducer_overwrite]{reducer_overwrite()}} for all other channels.}
 }
 \if{html}{\out{</div>}}
 }

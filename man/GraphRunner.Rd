@@ -13,6 +13,12 @@ State snapshot (named list) or \code{NULL}.
 
 A data frame with columns \code{agent}, \code{provider}, \code{model},
 \code{input_tokens}, \code{output_tokens}, \code{cost}.
+
+Character string.
+
+Character string.
+
+Invisibly, \code{path}.
 }
 \description{
 The compiled, executable graph. Produced by \link{StateGraph}\verb{$compile()}. Do not
@@ -27,6 +33,10 @@ call \code{GraphRunner$new()} directly; use \link{StateGraph}\verb{$compile()}.
 \item \href{#method-GraphRunner-get_state}{\code{GraphRunner$get_state()}}
 \item \href{#method-GraphRunner-update_state}{\code{GraphRunner$update_state()}}
 \item \href{#method-GraphRunner-cost_report}{\code{GraphRunner$cost_report()}}
+\item \href{#method-GraphRunner-as_dot}{\code{GraphRunner$as_dot()}}
+\item \href{#method-GraphRunner-as_mermaid}{\code{GraphRunner$as_mermaid()}}
+\item \href{#method-GraphRunner-visualize}{\code{GraphRunner$visualize()}}
+\item \href{#method-GraphRunner-export_diagram}{\code{GraphRunner$export_diagram()}}
 \item \href{#method-GraphRunner-print}{\code{GraphRunner$print()}}
 \item \href{#method-GraphRunner-clone}{\code{GraphRunner$clone()}}
 }
@@ -157,6 +167,64 @@ Return a cost report across all agents.
 \if{html}{\out{<div class="r">}}\preformatted{GraphRunner$cost_report()}\if{html}{\out{</div>}}
 }
 
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-GraphRunner-as_dot"></a>}}
+\if{latex}{\out{\hypertarget{method-GraphRunner-as_dot}{}}}
+\subsection{Method \code{as_dot()}}{
+Generate a DOT language string for the graph.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{GraphRunner$as_dot()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-GraphRunner-as_mermaid"></a>}}
+\if{latex}{\out{\hypertarget{method-GraphRunner-as_mermaid}{}}}
+\subsection{Method \code{as_mermaid()}}{
+Generate a Mermaid diagram string.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{GraphRunner$as_mermaid()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-GraphRunner-visualize"></a>}}
+\if{latex}{\out{\hypertarget{method-GraphRunner-visualize}{}}}
+\subsection{Method \code{visualize()}}{
+Render a visualization of the compiled graph.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{GraphRunner$visualize(engine = c("dot", "visnetwork", "mermaid"))}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{engine}}{One of \code{"dot"}, \code{"visnetwork"}, or \code{"mermaid"}.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-GraphRunner-export_diagram"></a>}}
+\if{latex}{\out{\hypertarget{method-GraphRunner-export_diagram}{}}}
+\subsection{Method \code{export_diagram()}}{
+Export the diagram to a file.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{GraphRunner$export_diagram(path, width = 800L, height = 600L)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{path}}{File path. Extension determines format (\code{.svg} or \code{.png}).}
+
+\item{\code{width}}{Integer. Width in pixels (PNG only).}
+
+\item{\code{height}}{Integer. Height in pixels (PNG only).}
+}
+\if{html}{\out{</div>}}
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-GraphRunner-print"></a>}}

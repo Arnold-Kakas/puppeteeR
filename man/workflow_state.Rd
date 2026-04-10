@@ -8,7 +8,9 @@ workflow_state(...)
 }
 \arguments{
 \item{...}{Named arguments, each a \verb{list(default = <value>)} optionally with
-a \code{reducer} element. If \code{reducer} is absent, \code{\link[=reducer_overwrite]{reducer_overwrite()}} is used.}
+a \code{reducer} element. If \code{reducer} is absent, \code{\link[=reducer_last_n]{reducer_last_n()}} with a
+window of 20 is used for list channels and \code{\link[=reducer_overwrite]{reducer_overwrite()}} for all
+other channels.}
 }
 \value{
 A \link{WorkflowState} object.

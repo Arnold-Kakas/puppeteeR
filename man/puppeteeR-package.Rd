@@ -12,6 +12,7 @@ Graph-based workflow engine for orchestrating multiple large language model (LLM
 Useful links:
 \itemize{
   \item \url{https://github.com/Arnold-Kakas/puppeteeR}
+  \item \url{https://arnold-kakas.github.io/puppeteeR/}
   \item Report bugs at \url{https://github.com/Arnold-Kakas/puppeteeR/issues}
 }
 

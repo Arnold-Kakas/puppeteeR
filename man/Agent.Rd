@@ -11,7 +11,9 @@ agent(
   role = NULL,
   instructions = NULL,
   tools = list(),
-  handoffs = character()
+  handoffs = character(),
+  max_retries = 3L,
+  retry_wait = 5
 )
 }
 \arguments{
@@ -26,6 +28,10 @@ agent(
 \item{tools}{List of \code{ellmer::tool()} objects.}
 
 \item{handoffs}{Character vector of agent names for handoffs.}
+
+\item{max_retries}{Integer. Retries on transient API errors (default \code{3L}).}
+
+\item{retry_wait}{Numeric. Seconds between retries (default \code{5}).}
 }
 \value{
 A new \code{Agent} object.
@@ -59,10 +65,12 @@ All LLM logic is delegated to \code{ellmer}.
 \examples{
 \dontrun{
 ag <- agent(
-  name = "researcher",
-  chat = ellmer::chat_anthropic(),
-  role = "Senior researcher",
-  instructions = "Be thorough and cite sources."
+  name        = "researcher",
+  chat        = ellmer::chat_anthropic(),
+  role        = "Senior researcher",
+  instructions = "Be thorough and cite sources.",
+  max_retries = 3L,
+  retry_wait  = 5
 )
 }
 }
@@ -105,7 +113,9 @@ Create a new Agent.
   role = NULL,
   instructions = NULL,
   tools = list(),
-  handoffs = character()
+  handoffs = character(),
+  max_retries = 3L,
+  retry_wait = 5
 )}\if{html}{\out{</div>}}
 }
 
@@ -125,6 +135,11 @@ the system prompt.}
 \item{\code{tools}}{List of \code{ellmer::tool()} objects to register on the chat.}
 
 \item{\code{handoffs}}{Character vector of agent names this agent may hand off to.}
+
+\item{\code{max_retries}}{Integer. Number of times to retry a failed API call
+before raising an error (default \code{3L}). Set to \code{0L} to disable retries.}
+
+\item{\code{retry_wait}}{Numeric. Seconds to wait between retries (default \code{5}).}
 }
 \if{html}{\out{</div>}}
 }
@@ -133,7 +148,7 @@ the system prompt.}
 \if{html}{\out{<a id="method-Agent-chat"></a>}}
 \if{latex}{\out{\hypertarget{method-Agent-chat}{}}}
 \subsection{Method \code{chat()}}{
-Send a message to the agent.
+Send a message to the agent, retrying on transient errors.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Agent$chat(...)}\if{html}{\out{</div>}}
 }
