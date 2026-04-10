@@ -8,6 +8,8 @@
   Graphs](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md):
 - [Getting Started with
   puppeteeR](https://arnold-kakas.github.io/puppeteeR/articles/getting-started.md):
+- [State Channels and
+  Reducers](https://arnold-kakas.github.io/puppeteeR/articles/state-and-reducers.md):
 - [Production Use
   Cases](https://arnold-kakas.github.io/puppeteeR/articles/use-cases.md):
 - [Visualizing

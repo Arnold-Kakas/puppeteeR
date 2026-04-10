@@ -36,6 +36,7 @@
 <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
+    <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
     <li><a class="dropdown-item" href="../articles/use-cases.html">Production Use Cases</a></li>
     <li><a class="dropdown-item" href="../articles/visualization.html">Visualizing Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/workflows.html">Convenience Workflows</a></li>
@@ -68,7 +69,7 @@
 
     
     
-<p>puppeteeR ships three one-liner constructors for common multi-agent
+<p>puppeteeR ships five one-liner constructors for common multi-agent
 patterns. Each returns a compiled <code>GraphRunner</code> ready to
 invoke.</p>
 <div class="section level2">
@@ -209,6 +210,147 @@ settled. The judge should reply <code>"continue"</code> or
 </div>
 </div>
 <div class="section level2">
+<h2 id="advisor_workflow-worker-advisor-feedback-loop">
+<code>advisor_workflow()</code> — worker + advisor feedback
+loop<a class="anchor" aria-label="anchor" href="#advisor_workflow-worker-advisor-feedback-loop"></a>
+</h2>
+<p>A cheap worker agent produces output; a higher-capability advisor
+agent evaluates it and either approves it or sends it back with specific
+feedback. This pattern minimises cost by running the expensive model
+only for evaluation, not for generation.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">advisor_workflow</span><span class="op">(</span></span>
+<span>  worker  <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>    <span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
+<span>    instructions <span class="op">=</span> <span class="st">"Write clearly and concisely."</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  advisor <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>    <span class="st">"advisor"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>    instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>      <span class="st">"You are a strict editor. If the response is accurate, well-structured, and concise, "</span>,</span>
+<span>      <span class="st">"reply 'approved'. Otherwise reply 'revise: &lt;specific feedback&gt;'."</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  max_revisions <span class="op">=</span> <span class="fl">3L</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Explain what a closure is in R."</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"latest_draft"</span><span class="op">)</span>   <span class="co"># final approved text</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"revision_n"</span><span class="op">)</span>     <span class="co"># number of revision cycles needed</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span>       <span class="co"># full audit trail: task, drafts, advisor verdicts</span></span></code></pre></div>
+<p><strong>How routing works</strong>: after each advisor turn, the
+workflow reads the <code>advisor_verdict</code> channel
+(<code>"approved"</code> or <code>"revise"</code>). If approved,
+execution ends. If revision is requested, the worker is called again
+with the original task plus the advisor’s feedback appended.</p>
+<p><strong>State channels</strong>: <code>latest_draft</code>
+(overwrite) always holds the current version — the advisor evaluates
+this, not the full message history. <code>advisor_feedback</code>
+(overwrite) carries the most recent revision notes.
+<code>messages</code> (append) is a full audit trail of every draft and
+verdict.</p>
+<p><strong>Tip</strong>: be explicit in the advisor’s instructions about
+the reply format. The routing reads for a response that starts with
+<code>"approved"</code> or <code>"revise:"</code> — a vague verdict like
+<code>"looks good"</code> will be treated as a revision request.</p>
+</div>
+<div class="section level2">
+<h2 id="planner_workflow-opus-plans-haiku-executes">
+<code>planner_workflow()</code> — Opus plans, Haiku executes<a class="anchor" aria-label="anchor" href="#planner_workflow-opus-plans-haiku-executes"></a>
+</h2>
+<p>Separates expensive planning and evaluation (Opus-tier) from cheap
+execution (Haiku-tier). The planner creates a step-by-step plan once; a
+pure-R dispatcher routes each step to the correct worker without any LLM
+call; the evaluator decides whether the results are complete or need a
+revised plan.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<span>  planner <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>    <span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>    instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>      <span class="st">"Break the task into steps for 'researcher' and 'writer'. "</span>,</span>
+<span>      <span class="st">"Respond with one step per line as: worker_name: instruction"</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    researcher <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>      <span class="st">"researcher"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
+<span>      instructions <span class="op">=</span> <span class="st">"Research thoroughly and return structured notes."</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    writer <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>      <span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
+<span>      instructions <span class="op">=</span> <span class="st">"Write clearly based on the provided notes."</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  evaluator <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
+<span>    <span class="st">"evaluator"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>    instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>      <span class="st">"Review the completed work against the original task. "</span>,</span>
+<span>      <span class="st">"Reply 'done' if complete, or 'replan' with a brief reason if not."</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  max_replans <span class="op">=</span> <span class="fl">2L</span>,</span>
+<span>  max_steps   <span class="op">=</span> <span class="fl">6L</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Write a short report on the benefits of tidy data in R."</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"results"</span><span class="op">)</span>   <span class="co"># list of all worker outputs, in order</span></span></code></pre></div>
+<p><strong>How the plan is parsed</strong>: the planner must respond
+with one step per line in the format
+<code>worker_name: instruction</code>. Lines that do not match this
+format raise an error. A custom <code>parse_plan</code> function can be
+supplied for alternative formats such as JSON:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">parse_json_plan</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">text</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">steps</span> <span class="op">&lt;-</span> <span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">fromJSON</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">steps</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>worker <span class="op">=</span> <span class="va">steps</span><span class="op">$</span><span class="va">worker</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span>, instruction <span class="op">=</span> <span class="va">steps</span><span class="op">$</span><span class="va">instruction</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">runner2</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<span>  planner    <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>                     instructions <span class="op">=</span> <span class="st">"Respond with a JSON array of {worker, instruction} objects."</span><span class="op">)</span>,</span>
+<span>  workers    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>analyst <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"analyst"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  parse_plan <span class="op">=</span> <span class="va">parse_json_plan</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><strong>Cost profile</strong> for a plan with N steps and R
+replanning rounds:</p>
+<table class="table">
+<thead><tr class="header">
+<th>Model tier</th>
+<th>Node</th>
+<th>Calls</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Opus</td>
+<td>planner</td>
+<td><code>R + 1</code></td>
+</tr>
+<tr class="even">
+<td>Opus</td>
+<td>evaluator</td>
+<td><code>R + 1</code></td>
+</tr>
+<tr class="odd">
+<td>Haiku</td>
+<td>each worker</td>
+<td>up to <code>N × (R + 1)</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>In a <code>supervisor_workflow</code> the manager (Opus) is called
+once <em>per step</em>. In a <code>planner_workflow</code> Opus is
+called once <em>per round</em> regardless of plan length — a meaningful
+saving for plans with many steps.</p>
+</div>
+<div class="section level2">
 <h2 id="comparison">Comparison<a class="anchor" aria-label="anchor" href="#comparison"></a>
 </h2>
 <table class="table">
@@ -227,16 +369,26 @@ settled. The judge should reply <code>"continue"</code> or
 </tr>
 <tr class="even">
 <td><code><a href="../reference/supervisor_workflow.html">supervisor_workflow()</a></code></td>
-<td>Dynamic delegation: manager decides which specialist to call</td>
+<td>Dynamic delegation: manager decides which specialist to call
+next</td>
 </tr>
 <tr class="odd">
 <td><code><a href="../reference/debate_workflow.html">debate_workflow()</a></code></td>
 <td>Multiple perspectives: agents challenge each other</td>
 </tr>
+<tr class="even">
+<td><code>advisor_workflow()</code></td>
+<td>Quality gate: cheap model generates, expensive model approves</td>
+</tr>
+<tr class="odd">
+<td><code>planner_workflow()</code></td>
+<td>Cost efficiency: expensive model plans once, cheap models
+execute</td>
+</tr>
 </tbody>
 </table>
-<p>For anything more complex - handoffs, parallel fans, custom state
-channels - build the graph directly with <code><a href="../reference/state_graph.html">state_graph()</a></code>. See
+<p>For anything more complex — handoffs, parallel fans, custom state
+channels — build the graph directly with <code><a href="../reference/state_graph.html">state_graph()</a></code>. See
 <code><a href="../articles/custom-graphs.html">vignette("custom-graphs")</a></code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
