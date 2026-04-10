@@ -33,7 +33,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
+<li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
+    <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
@@ -186,33 +187,49 @@ an argument, or creative brainstorming.</p>
 <h3 id="with-a-judge">With a judge<a class="anchor" aria-label="anchor" href="#with-a-judge"></a>
 </h3>
 <p>After each full round, a judge agent decides whether the debate is
-settled. The judge should reply <code>"continue"</code> or
-<code>"done"</code>.</p>
+settled. The routing checks whether the judge’s response contains the
+word <code>"done"</code> (case-insensitive) anywhere — if found, the
+workflow ends; otherwise it continues. The judge can write a full
+response as long as it ends with <code>done</code> or
+<code>continue</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/debate_workflow.html">debate_workflow</a></span><span class="op">(</span></span>
 <span>  agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    optimist  <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"optimist"</span>,  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                      instructions <span class="op">=</span> <span class="st">"Always highlight the positive side."</span><span class="op">)</span>,</span>
+<span>                      instructions <span class="op">=</span> <span class="st">"Always highlight the positive side. Max 100 words."</span><span class="op">)</span>,</span>
 <span>    pessimist <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"pessimist"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                      instructions <span class="op">=</span> <span class="st">"Always highlight risks and downsides."</span><span class="op">)</span></span>
+<span>                      instructions <span class="op">=</span> <span class="st">"Always highlight risks and downsides. Max 100 words."</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  judge <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>    <span class="st">"judge"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
-<span>      <span class="st">"Read the debate so far. If both sides have made their key points "</span>,</span>
-<span>      <span class="st">"and the debate is productive, reply 'done'. Otherwise reply 'continue'."</span></span>
+<span>      <span class="st">"You are moderating a debate. After each round, decide whether it has reached "</span>,</span>
+<span>      <span class="st">"a natural conclusion.\n\n"</span>,</span>
+<span>      <span class="st">"If both sides have made their key points, write a brief summary and end your "</span>,</span>
+<span>      <span class="st">"response with the single word: done\n\n"</span>,</span>
+<span>      <span class="st">"If the debate should continue, write a brief observation and end your "</span>,</span>
+<span>      <span class="st">"response with the single word: continue"</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  max_rounds <span class="op">=</span> <span class="fl">5L</span></span>
+<span>  max_rounds   <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  state_schema <span class="op">=</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
+<span>    messages      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_last_n.html">reducer_last_n</a></span><span class="op">(</span><span class="fl">8L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    judge_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">"continue"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Should we adopt AI in healthcare?"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Full transcript including judge verdicts</span></span>
+<span><span class="co"># Full transcript including judge summaries</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">msg</span> <span class="kw">in</span> <span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"---\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">msg</span><span class="op">)</span>, <span class="st">"\n\n"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># The final judge_verdict channel shows why the debate ended</span></span>
-<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"judge_verdict"</span><span class="op">)</span>   <span class="co"># "done" or "continue"</span></span></code></pre></div>
+<span><span class="co"># "done" means the judge ended it; "continue" means max_rounds fired first</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"judge_verdict"</span><span class="op">)</span></span></code></pre></div>
+<p><strong><code>max_rounds</code> with a judge</strong>: each round
+consumes 3 node executions (optimist + pessimist + judge), but the
+internal termination guard is <code>max_turns(max_rounds * 2)</code> —
+it does not account for judge turns. Set <code>max_rounds</code> higher
+than you need to ensure the judge gets enough opportunities to run.</p>
 </div>
 </div>
 <div class="section level2">
@@ -225,7 +242,7 @@ agent evaluates it and either approves it or sends it back with specific
 feedback. This pattern minimises cost by running the expensive model
 only for evaluation, not for generation.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">advisor_workflow</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/advisor_workflow.html">advisor_workflow</a></span><span class="op">(</span></span>
 <span>  worker  <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>    <span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
 <span>    instructions <span class="op">=</span> <span class="st">"Write clearly and concisely."</span></span>
@@ -277,7 +294,7 @@ pure-R dispatcher routes each step to the correct worker without any LLM
 call; the evaluator decides whether the results are complete or need a
 revised plan.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
 <span>  planner <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>    <span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
 <span>    instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
@@ -324,7 +341,7 @@ supplied for alternative formats such as JSON:</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">runner2</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<span><span class="va">runner2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
 <span>  planner    <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
 <span>                     instructions <span class="op">=</span> <span class="st">"Respond with a JSON array of {worker, instruction} objects."</span><span class="op">)</span>,</span>
 <span>  workers    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>analyst <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"analyst"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -389,11 +406,11 @@ next</td>
 <td>Multiple perspectives: agents challenge each other</td>
 </tr>
 <tr class="even">
-<td><code>advisor_workflow()</code></td>
+<td><code><a href="../reference/advisor_workflow.html">advisor_workflow()</a></code></td>
 <td>Quality gate: cheap model generates, expensive model approves</td>
 </tr>
 <tr class="odd">
-<td><code>planner_workflow()</code></td>
+<td><code><a href="../reference/planner_workflow.html">planner_workflow()</a></code></td>
 <td>Cost efficiency: expensive model plans once, cheap models
 execute</td>
 </tr>
@@ -402,6 +419,9 @@ execute</td>
 <p>For anything more complex — handoffs, parallel fans, custom state
 channels — build the graph directly with <code><a href="../reference/state_graph.html">state_graph()</a></code>. See
 <code><a href="../articles/custom-graphs.html">vignette("custom-graphs")</a></code>.</p>
+<p>For guidance on model selection, context management, retry
+configuration, and prompt design see
+<code><a href="../articles/best-practices.html">vignette("best-practices")</a></code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

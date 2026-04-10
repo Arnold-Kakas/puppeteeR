@@ -13,6 +13,8 @@ Useful links:
 
 - <https://github.com/Arnold-Kakas/puppeteeR>
 
+- <https://arnold-kakas.github.io/puppeteeR/>
+
 - Report bugs at <https://github.com/Arnold-Kakas/puppeteeR/issues>
 
 ## Author

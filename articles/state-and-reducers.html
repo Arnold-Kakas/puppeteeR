@@ -33,7 +33,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
+<li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
+    <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
@@ -115,8 +116,10 @@ writes to it.</li>
 <li>
 <code>reducer</code> — a two-argument function
 <code>function(old, new)</code> that decides how an incoming update is
-merged with the current value. If omitted,
-<code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code> is used.</li>
+merged with the current value. If omitted, the default depends on the
+channel type: <code>reducer_last_n(20)</code> for list channels
+(<code>default = list(...)</code>) and <code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code>
+for all other channels.</li>
 </ul>
 <p>When a node returns an update, <code>state$update()</code> applies
 the reducer for each key:</p>
@@ -375,22 +378,15 @@ every routing signal so the routing function is a clean
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">old</span>, <span class="va">new</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">old</span>, <span class="va">new</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">reducer_last_n</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/force.html" class="external-link">force</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">old</span>, <span class="va">new</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">updated</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">old</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">new</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">updated</span><span class="op">)</span> <span class="op">&gt;</span> <span class="va">n</span><span class="op">)</span> <span class="va">updated</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">updated</span>, <span class="va">n</span><span class="op">)</span></span>
-<span>    <span class="va">updated</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">}</span></span>
-<span></span>
 <span><span class="va">state_schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
-<span>  messages    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu">reducer_last_n</span><span class="op">(</span><span class="fl">10L</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  best_score  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fl">0</span>,      reducer <span class="op">=</span> <span class="fu">reducer_max</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  messages   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_last_n.html">reducer_last_n</a></span><span class="op">(</span><span class="fl">10L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  best_score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fl">0</span>,      reducer <span class="op">=</span> <span class="fu">reducer_max</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><code>reducer_last_n()</code> is particularly useful for long-running
-supervisor or debate workflows where you want to prevent the context
-window from growing too large.</p>
+<p><code>reducer_last_n(n)</code> is a built-in reducer that keeps only
+the most recent <code>n</code> entries. It is particularly useful for
+long-running supervisor or debate workflows where you want to prevent
+the context window from growing too large. <code>reducer_max</code>
+above is an example of a fully custom reducer.</p>
 </div>
 <div class="section level2">
 <h2 id="snapshot-and-restore">Snapshot and restore<a class="anchor" aria-label="anchor" href="#snapshot-and-restore"></a>
@@ -444,7 +440,7 @@ which keeps the evaluation focused on the current version.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">advisor_workflow</span><span class="op">(</span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/advisor_workflow.html">advisor_workflow</a></span><span class="op">(</span></span>
 <span>  worker  <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>,  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
 <span>                  instructions <span class="op">=</span> <span class="st">"Write clearly and concisely."</span><span class="op">)</span>,</span>
 <span>  advisor <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"advisor"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
@@ -490,7 +486,7 @@ the dispatcher routes to the evaluator (or END if no evaluator was
 supplied). This is purely R logic — zero LLM tokens spent on
 routing.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
 <span>  planner   <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"planner"</span>,    <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
 <span>                    instructions  <span class="op">=</span> <span class="st">"Break tasks into steps for 'researcher' and 'writer'."</span><span class="op">)</span>,</span>
 <span>  workers   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -515,7 +511,7 @@ function can be supplied for alternative formats (e.g. JSON):</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu">planner_workflow</span><span class="op">(</span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
 <span>  planner    <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  workers    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>analyst <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"analyst"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  parse_plan <span class="op">=</span> <span class="va">parse_json_plan</span></span>

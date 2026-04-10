@@ -2,6 +2,8 @@
 
 ### All vignettes
 
+- [Best
+  Practices](https://arnold-kakas.github.io/puppeteeR/articles/best-practices.md):
 - [Checkpointing and
   Human-in-the-Loop](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md):
 - [Building Custom Multi-Agent

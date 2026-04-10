@@ -67,8 +67,10 @@ Create a new WorkflowState.
   Named list where each element is
   `list(default = <value>, reducer = <function>)`. If `reducer` is
   omitted,
+  [`reducer_last_n()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.md)
+  with a window of 20 is used for list channels and
   [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
-  is used.
+  for all other channels.
 
 ------------------------------------------------------------------------
 

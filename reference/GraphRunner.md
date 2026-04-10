@@ -18,6 +18,12 @@ State snapshot (named list) or `NULL`.
 A data frame with columns `agent`, `provider`, `model`, `input_tokens`,
 `output_tokens`, `cost`.
 
+Character string.
+
+Character string.
+
+Invisibly, `path`.
+
 ## Methods
 
 ### Public methods
@@ -33,6 +39,14 @@ A data frame with columns `agent`, `provider`, `model`, `input_tokens`,
 - [`GraphRunner$update_state()`](#method-GraphRunner-update_state)
 
 - [`GraphRunner$cost_report()`](#method-GraphRunner-cost_report)
+
+- [`GraphRunner$as_dot()`](#method-GraphRunner-as_dot)
+
+- [`GraphRunner$as_mermaid()`](#method-GraphRunner-as_mermaid)
+
+- [`GraphRunner$visualize()`](#method-GraphRunner-visualize)
+
+- [`GraphRunner$export_diagram()`](#method-GraphRunner-export_diagram)
 
 - [`GraphRunner$print()`](#method-GraphRunner-print)
 
@@ -183,6 +197,66 @@ Return a cost report across all agents.
 #### Usage
 
     GraphRunner$cost_report()
+
+------------------------------------------------------------------------
+
+### Method `as_dot()`
+
+Generate a DOT language string for the graph.
+
+#### Usage
+
+    GraphRunner$as_dot()
+
+------------------------------------------------------------------------
+
+### Method `as_mermaid()`
+
+Generate a Mermaid diagram string.
+
+#### Usage
+
+    GraphRunner$as_mermaid()
+
+------------------------------------------------------------------------
+
+### Method `visualize()`
+
+Render a visualization of the compiled graph.
+
+#### Usage
+
+    GraphRunner$visualize(engine = c("dot", "visnetwork", "mermaid"))
+
+#### Arguments
+
+- `engine`:
+
+  One of `"dot"`, `"visnetwork"`, or `"mermaid"`.
+
+------------------------------------------------------------------------
+
+### Method `export_diagram()`
+
+Export the diagram to a file.
+
+#### Usage
+
+    GraphRunner$export_diagram(path, width = 800L, height = 600L)
+
+#### Arguments
+
+- `path`:
+
+  File path. Extension determines format (`.svg` or `.png`).
+
+- `width`:
+
+  Integer. Width in pixels (PNG only).
+
+- `height`:
+
+  Integer. Height in pixels (PNG only).
 
 ------------------------------------------------------------------------
 

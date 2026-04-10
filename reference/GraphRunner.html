@@ -20,7 +20,8 @@ call GraphRunner$new() directly; use StateGraph$compile()."><meta property="og:i
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
+    <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
@@ -57,6 +58,9 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 <p>State snapshot (named list) or <code>NULL</code>.</p>
 <p>A data frame with columns <code>agent</code>, <code>provider</code>, <code>model</code>,
 <code>input_tokens</code>, <code>output_tokens</code>, <code>cost</code>.</p>
+<p>Character string.</p>
+<p>Character string.</p>
+<p>Invisibly, <code>path</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="methods">Methods<a class="anchor" aria-label="anchor" href="#methods"></a></h2>
@@ -70,6 +74,10 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 <li><p><a href="#method-GraphRunner-get_state"><code>GraphRunner$get_state()</code></a></p></li>
 <li><p><a href="#method-GraphRunner-update_state"><code>GraphRunner$update_state()</code></a></p></li>
 <li><p><a href="#method-GraphRunner-cost_report"><code>GraphRunner$cost_report()</code></a></p></li>
+<li><p><a href="#method-GraphRunner-as_dot"><code>GraphRunner$as_dot()</code></a></p></li>
+<li><p><a href="#method-GraphRunner-as_mermaid"><code>GraphRunner$as_mermaid()</code></a></p></li>
+<li><p><a href="#method-GraphRunner-visualize"><code>GraphRunner$visualize()</code></a></p></li>
+<li><p><a href="#method-GraphRunner-export_diagram"><code>GraphRunner$export_diagram()</code></a></p></li>
 <li><p><a href="#method-GraphRunner-print"><code>GraphRunner$print()</code></a></p></li>
 <li><p><a href="#method-GraphRunner-clone"><code>GraphRunner$clone()</code></a></p></li>
 </ul></div><p></p><hr><a id="method-GraphRunner-new"></a><div class="section">
@@ -208,15 +216,71 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 </div>
 
 
-</div><p></p><hr><a id="method-GraphRunner-print"></a><div class="section">
-<h3 id="method-print-">Method <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code><a class="anchor" aria-label="anchor" href="#method-print-"></a></h3>
-<p>Print runner summary.</p><div class="section">
+</div><p></p><hr><a id="method-GraphRunner-as_dot"></a><div class="section">
+<h3 id="method-as-dot-">Method <code>as_dot()</code><a class="anchor" aria-label="anchor" href="#method-as-dot-"></a></h3>
+<p>Generate a DOT language string for the graph.</p><div class="section">
 <h4 id="usage-6">Usage<a class="anchor" aria-label="anchor" href="#usage-6"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">as_dot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+
+</div><p></p><hr><a id="method-GraphRunner-as_mermaid"></a><div class="section">
+<h3 id="method-as-mermaid-">Method <code>as_mermaid()</code><a class="anchor" aria-label="anchor" href="#method-as-mermaid-"></a></h3>
+<p>Generate a Mermaid diagram string.</p><div class="section">
+<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">as_mermaid</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+
+</div><p></p><hr><a id="method-GraphRunner-visualize"></a><div class="section">
+<h3 id="method-visualize-">Method <code>visualize()</code><a class="anchor" aria-label="anchor" href="#method-visualize-"></a></h3>
+<p>Render a visualization of the compiled graph.</p><div class="section">
+<h4 id="usage-8">Usage<a class="anchor" aria-label="anchor" href="#usage-8"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span>engine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dot"</span>, <span class="st">"visnetwork"</span>, <span class="st">"mermaid"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
 <h4 id="arguments-5">Arguments<a class="anchor" aria-label="anchor" href="#arguments-5"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>engine</code></dt>
+<dd><p>One of <code>"dot"</code>, <code>"visnetwork"</code>, or <code>"mermaid"</code>.</p></dd>
+
+
+</dl><p></p></div>
+</div>
+
+</div><p></p><hr><a id="method-GraphRunner-export_diagram"></a><div class="section">
+<h3 id="method-export-diagram-">Method <code>export_diagram()</code><a class="anchor" aria-label="anchor" href="#method-export-diagram-"></a></h3>
+<p>Export the diagram to a file.</p><div class="section">
+<h4 id="usage-9">Usage<a class="anchor" aria-label="anchor" href="#usage-9"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">export_diagram</span><span class="op">(</span><span class="va">path</span>, width <span class="op">=</span> <span class="fl">800L</span>, height <span class="op">=</span> <span class="fl">600L</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>path</code></dt>
+<dd><p>File path. Extension determines format (<code>.svg</code> or <code>.png</code>).</p></dd>
+
+
+<dt><code>width</code></dt>
+<dd><p>Integer. Width in pixels (PNG only).</p></dd>
+
+
+<dt><code>height</code></dt>
+<dd><p>Integer. Height in pixels (PNG only).</p></dd>
+
+
+</dl><p></p></div>
+</div>
+
+</div><p></p><hr><a id="method-GraphRunner-print"></a><div class="section">
+<h3 id="method-print-">Method <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code><a class="anchor" aria-label="anchor" href="#method-print-"></a></h3>
+<p>Print runner summary.</p><div class="section">
+<h4 id="usage-10">Usage<a class="anchor" aria-label="anchor" href="#usage-10"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-7">Arguments<a class="anchor" aria-label="anchor" href="#arguments-7"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>Ignored.</p></dd>
 
@@ -227,12 +291,12 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 </div><p></p><hr><a id="method-GraphRunner-clone"></a><div class="section">
 <h3 id="method-clone-">Method <code>clone()</code><a class="anchor" aria-label="anchor" href="#method-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-7">Usage<a class="anchor" aria-label="anchor" href="#usage-7"></a></h4>
+<h4 id="usage-11">Usage<a class="anchor" aria-label="anchor" href="#usage-11"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">GraphRunner</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-6">Arguments<a class="anchor" aria-label="anchor" href="#arguments-6"></a></h4>
+<h4 id="arguments-8">Arguments<a class="anchor" aria-label="anchor" href="#arguments-8"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
 

@@ -16,8 +16,10 @@ workflow_state(...)
 
   Named arguments, each a `list(default = <value>)` optionally with a
   `reducer` element. If `reducer` is absent,
+  [`reducer_last_n()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.md)
+  with a window of 20 is used for list channels and
   [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
-  is used.
+  for all other channels.
 
 ## Value
 

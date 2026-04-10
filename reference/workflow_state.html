@@ -18,7 +18,8 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
+    <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
@@ -56,7 +57,9 @@
 
 <dl><dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Named arguments, each a <code>list(default = &lt;value&gt;)</code> optionally with
-a <code>reducer</code> element. If <code>reducer</code> is absent, <code><a href="reducer_overwrite.html">reducer_overwrite()</a></code> is used.</p></dd>
+a <code>reducer</code> element. If <code>reducer</code> is absent, <code><a href="reducer_last_n.html">reducer_last_n()</a></code> with a
+window of 20 is used for list channels and <code><a href="reducer_overwrite.html">reducer_overwrite()</a></code> for all
+other channels.</p></dd>
 
 </dl></div>
     <div class="section level2">

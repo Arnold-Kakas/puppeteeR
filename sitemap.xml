@@ -2,6 +2,7 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/404.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/LICENSE-text.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/LICENSE.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/articles/best-practices.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/getting-started.html</loc></url>
@@ -25,6 +26,7 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/add_conditional_edge.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/add_edge.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/add_node.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/reference/advisor_workflow.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/build_cost_report.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/build_visnetwork.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/check_termination.html</loc></url>
@@ -39,9 +41,11 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/index.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/max_turns.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/memory_checkpointer.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/reference/planner_workflow.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/puppeteeR-package.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/rds_checkpointer.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_merge.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.html</loc></url>

@@ -41,6 +41,9 @@
 - [`add_node()`](https://arnold-kakas.github.io/puppeteeR/reference/add_node.md)
   : Add a node to a graph
 
+- [`advisor_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/advisor_workflow.md)
+  : Build an advisor workflow
+
 - [`check_termination()`](https://arnold-kakas.github.io/puppeteeR/reference/check_termination.md)
   : Evaluate a termination condition
 
@@ -66,11 +69,19 @@
 - [`memory_checkpointer()`](https://arnold-kakas.github.io/puppeteeR/reference/memory_checkpointer.md)
   : Create an in-memory checkpointer
 
+- [`planner_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/planner_workflow.md)
+  : Build a planner workflow
+
 - [`rds_checkpointer()`](https://arnold-kakas.github.io/puppeteeR/reference/rds_checkpointer.md)
   : Create an RDS file checkpointer
 
 - [`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md)
   : Reducer: append new value to a list
+
+- [`reducer_last_n()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.md)
+  :
+
+  Reducer: keep only the last `n` entries
 
 - [`reducer_merge()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_merge.md)
   :

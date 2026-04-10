@@ -22,7 +22,8 @@ All LLM logic is delegated to ellmer."><meta property="og:image" content="https:
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
+    <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
@@ -59,7 +60,9 @@ All LLM logic is delegated to <code>ellmer</code>.</p>
 <span>  role <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  instructions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tools <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  handoffs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  handoffs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  max_retries <span class="op">=</span> <span class="fl">3L</span>,</span>
+<span>  retry_wait <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -89,6 +92,14 @@ All LLM logic is delegated to <code>ellmer</code>.</p>
 
 <dt id="arg-handoffs">handoffs<a class="anchor" aria-label="anchor" href="#arg-handoffs"></a></dt>
 <dd><p>Character vector of agent names for handoffs.</p></dd>
+
+
+<dt id="arg-max-retries">max_retries<a class="anchor" aria-label="anchor" href="#arg-max-retries"></a></dt>
+<dd><p>Integer. Retries on transient API errors (default <code>3L</code>).</p></dd>
+
+
+<dt id="arg-retry-wait">retry_wait<a class="anchor" aria-label="anchor" href="#arg-retry-wait"></a></dt>
+<dd><p>Numeric. Seconds between retries (default <code>5</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -151,7 +162,9 @@ All LLM logic is delegated to <code>ellmer</code>.</p>
 <span>  role <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  instructions <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tools <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  handoffs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  handoffs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  max_retries <span class="op">=</span> <span class="fl">3L</span>,</span>
+<span>  retry_wait <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -183,12 +196,21 @@ the system prompt.</p></dd>
 <dd><p>Character vector of agent names this agent may hand off to.</p></dd>
 
 
+<dt><code>max_retries</code></dt>
+<dd><p>Integer. Number of times to retry a failed API call
+before raising an error (default <code>3L</code>). Set to <code>0L</code> to disable retries.</p></dd>
+
+
+<dt><code>retry_wait</code></dt>
+<dd><p>Numeric. Seconds to wait between retries (default <code>5</code>).</p></dd>
+
+
 </dl><p></p></div>
 </div>
 
 </div><p></p><hr><a id="method-Agent-chat"></a><div class="section">
 <h3 id="method-chat-">Method <code><a href="https://ellmer.tidyverse.org/reference/chat-any.html" class="external-link">chat()</a></code><a class="anchor" aria-label="anchor" href="#method-chat-"></a></h3>
-<p>Send a message to the agent.</p><div class="section">
+<p>Send a message to the agent, retrying on transient errors.</p><div class="section">
 <h4 id="usage-1">Usage<a class="anchor" aria-label="anchor" href="#usage-1"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Agent</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
@@ -326,10 +348,12 @@ the system prompt.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu">agent</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  name <span class="op">=</span> <span class="st">"researcher"</span>,</span></span>
-<span class="r-in"><span>  chat <span class="op">=</span> <span class="fu">ellmer</span><span class="fu">::</span><span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  role <span class="op">=</span> <span class="st">"Senior researcher"</span>,</span></span>
-<span class="r-in"><span>  instructions <span class="op">=</span> <span class="st">"Be thorough and cite sources."</span></span></span>
+<span class="r-in"><span>  name        <span class="op">=</span> <span class="st">"researcher"</span>,</span></span>
+<span class="r-in"><span>  chat        <span class="op">=</span> <span class="fu">ellmer</span><span class="fu">::</span><span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  role        <span class="op">=</span> <span class="st">"Senior researcher"</span>,</span></span>
+<span class="r-in"><span>  instructions <span class="op">=</span> <span class="st">"Be thorough and cite sources."</span>,</span></span>
+<span class="r-in"><span>  max_retries <span class="op">=</span> <span class="fl">3L</span>,</span></span>
+<span class="r-in"><span>  retry_wait  <span class="op">=</span> <span class="fl">5</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>

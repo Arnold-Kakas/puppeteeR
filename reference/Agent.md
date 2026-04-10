@@ -14,7 +14,9 @@ agent(
   role = NULL,
   instructions = NULL,
   tools = list(),
-  handoffs = character()
+  handoffs = character(),
+  max_retries = 3L,
+  retry_wait = 5
 )
 ```
 
@@ -47,6 +49,14 @@ agent(
 - handoffs:
 
   Character vector of agent names for handoffs.
+
+- max_retries:
+
+  Integer. Retries on transient API errors (default `3L`).
+
+- retry_wait:
+
+  Numeric. Seconds between retries (default `5`).
 
 ## Value
 
@@ -128,7 +138,9 @@ Create a new Agent.
       role = NULL,
       instructions = NULL,
       tools = list(),
-      handoffs = character()
+      handoffs = character(),
+      max_retries = 3L,
+      retry_wait = 5
     )
 
 #### Arguments
@@ -163,11 +175,20 @@ Create a new Agent.
 
   Character vector of agent names this agent may hand off to.
 
+- `max_retries`:
+
+  Integer. Number of times to retry a failed API call before raising an
+  error (default `3L`). Set to `0L` to disable retries.
+
+- `retry_wait`:
+
+  Numeric. Seconds to wait between retries (default `5`).
+
 ------------------------------------------------------------------------
 
 ### Method [`chat()`](https://ellmer.tidyverse.org/reference/chat-any.html)
 
-Send a message to the agent.
+Send a message to the agent, retrying on transient errors.
 
 #### Usage
 
@@ -308,10 +329,12 @@ The objects of this class are cloneable with this method.
 ``` r
 if (FALSE) { # \dontrun{
 ag <- agent(
-  name = "researcher",
-  chat = ellmer::chat_anthropic(),
-  role = "Senior researcher",
-  instructions = "Be thorough and cite sources."
+  name        = "researcher",
+  chat        = ellmer::chat_anthropic(),
+  role        = "Senior researcher",
+  instructions = "Be thorough and cite sources.",
+  max_retries = 3L,
+  retry_wait  = 5
 )
 } # }
 ```
