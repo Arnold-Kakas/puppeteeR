@@ -53,7 +53,9 @@ Each channel has:
 
 - `default` — the value the channel holds before any node writes to it.
 - `reducer` — a two-argument function `function(old, new)` that decides how an incoming
-  update is merged with the current value. If omitted, `reducer_overwrite()` is used.
+  update is merged with the current value. If omitted, the default depends on the channel
+  type: `reducer_last_n(20)` for list channels (`default = list(...)`) and
+  `reducer_overwrite()` for all other channels.
 
 When a node returns an update, `state$update()` applies the reducer for each key:
 
@@ -269,23 +271,16 @@ reducer_max <- function() {
   function(old, new) max(old, new, na.rm = TRUE)
 }
 
-reducer_last_n <- function(n) {
-  force(n)
-  function(old, new) {
-    updated <- c(old, list(new))
-    if (length(updated) > n) updated <- tail(updated, n)
-    updated
-  }
-}
-
 state_schema <- workflow_state(
-  messages    = list(default = list(), reducer = reducer_last_n(10L)),
-  best_score  = list(default = 0,      reducer = reducer_max())
+  messages   = list(default = list(), reducer = reducer_last_n(10L)),
+  best_score = list(default = 0,      reducer = reducer_max())
 )
 ```
 
-`reducer_last_n()` is particularly useful for long-running supervisor or debate workflows
-where you want to prevent the context window from growing too large.
+`reducer_last_n(n)` is a built-in reducer that keeps only the most recent `n` entries.
+It is particularly useful for long-running supervisor or debate workflows where you want to
+prevent the context window from growing too large. `reducer_max` above is an example of a
+fully custom reducer.
 
 ## Snapshot and restore
 

@@ -125,35 +125,50 @@ for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n")
 
 ### With a judge
 
-After each full round, a judge agent decides whether the debate is settled. The judge should reply
-`"continue"` or `"done"`.
+After each full round, a judge agent decides whether the debate is settled. The routing
+checks whether the judge's response contains the word `"done"` (case-insensitive) anywhere
+— if found, the workflow ends; otherwise it continues. The judge can write a full response
+as long as it ends with `done` or `continue`.
 
 ```{r debate-judge, eval = FALSE}
 runner <- debate_workflow(
   agents = list(
     optimist  = agent("optimist",  chat_anthropic(),
-                      instructions = "Always highlight the positive side."),
+                      instructions = "Always highlight the positive side. Max 100 words."),
     pessimist = agent("pessimist", chat_anthropic(),
-                      instructions = "Always highlight risks and downsides.")
+                      instructions = "Always highlight risks and downsides. Max 100 words.")
   ),
   judge = agent(
     "judge", chat_anthropic(),
     instructions = paste0(
-      "Read the debate so far. If both sides have made their key points ",
-      "and the debate is productive, reply 'done'. Otherwise reply 'continue'."
+      "You are moderating a debate. After each round, decide whether it has reached ",
+      "a natural conclusion.\n\n",
+      "If both sides have made their key points, write a brief summary and end your ",
+      "response with the single word: done\n\n",
+      "If the debate should continue, write a brief observation and end your ",
+      "response with the single word: continue"
     )
   ),
-  max_rounds = 5L
+  max_rounds   = 10L,
+  state_schema = workflow_state(
+    messages      = list(default = list(), reducer = reducer_last_n(8L)),
+    judge_verdict = list(default = "continue")
+  )
 )
 
 result <- runner$invoke(list(messages = list("Should we adopt AI in healthcare?")))
 
-# Full transcript including judge verdicts
+# Full transcript including judge summaries
 for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n\n")
 
-# The final judge_verdict channel shows why the debate ended
-result$get("judge_verdict")   # "done" or "continue"
+# "done" means the judge ended it; "continue" means max_rounds fired first
+result$get("judge_verdict")
 ```
+
+**`max_rounds` with a judge**: each round consumes 3 node executions (optimist + pessimist +
+judge), but the internal termination guard is `max_turns(max_rounds * 2)` — it does not
+account for judge turns. Set `max_rounds` higher than you need to ensure the judge gets
+enough opportunities to run.
 
 ## `advisor_workflow()` — worker + advisor feedback loop
 
@@ -288,3 +303,6 @@ saving for plans with many steps.
 
 For anything more complex — handoffs, parallel fans, custom state channels — build the graph
 directly with `state_graph()`. See `vignette("custom-graphs")`.
+
+For guidance on model selection, context management, retry configuration, and prompt design
+see `vignette("best-practices")`.

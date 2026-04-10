@@ -12,7 +12,8 @@ WorkflowState <- R6::R6Class(
     #' @description Create a new WorkflowState.
     #' @param schema Named list where each element is
     #'   `list(default = <value>, reducer = <function>)`. If `reducer` is
-    #'   omitted, [reducer_overwrite()] is used.
+    #'   omitted, [reducer_last_n()] with a window of 20 is used for list
+    #'   channels and [reducer_overwrite()] for all other channels.
     #' @returns A new `WorkflowState` object.
     initialize = function(schema) {
       rlang::check_required(schema)
@@ -34,7 +35,13 @@ WorkflowState <- R6::R6Class(
             "Channel {.val {ch}} must be a list with at least a {.field default} element."
           )
         }
-        reducer <- if (!is.null(spec$reducer)) spec$reducer else reducer_overwrite()
+        reducer <- if (!is.null(spec$reducer)) {
+          spec$reducer
+        } else if (is.list(spec$default)) {
+          reducer_last_n(20L)
+        } else {
+          reducer_overwrite()
+        }
         if (!is.function(reducer)) {
           cli::cli_abort("Channel {.val {ch}}: {.field reducer} must be a function.")
         }
@@ -157,7 +164,9 @@ WorkflowState <- R6::R6Class(
 #' Constructs a [WorkflowState] from named channel specifications.
 #'
 #' @param ... Named arguments, each a `list(default = <value>)` optionally with
-#'   a `reducer` element. If `reducer` is absent, [reducer_overwrite()] is used.
+#'   a `reducer` element. If `reducer` is absent, [reducer_last_n()] with a
+#'   window of 20 is used for list channels and [reducer_overwrite()] for all
+#'   other channels.
 #' @returns A [WorkflowState] object.
 #' @export
 #' @examples
@@ -210,4 +219,29 @@ reducer_append <- function() {
 #' r(list(a = 1, b = 2), list(b = 99, c = 3))
 reducer_merge <- function() {
   function(old, new) modifyList(old, new)
+}
+
+#' Reducer: keep only the last `n` entries
+#'
+#' Appends `new` to `old` then trims the list to at most `n` entries by
+#' dropping the oldest. Use this instead of [reducer_append()] whenever the
+#' channel feeds into an LLM call, to prevent the context window from growing
+#' unboundedly and causing connection errors on long workflows.
+#'
+#' @param n Positive integer. Maximum number of entries to retain.
+#' @returns A two-argument function `function(old, new)`.
+#' @export
+#' @examples
+#' r <- reducer_last_n(3L)
+#' r(list("a", "b", "c"), "d")   # drops "a", keeps "b", "c", "d"
+reducer_last_n <- function(n) {
+  if (!is.numeric(n) || length(n) != 1L || n < 1L) {
+    cli::cli_abort("{.arg n} must be a positive integer.")
+  }
+  n <- as.integer(n)
+  function(old, new) {
+    updated <- c(old, list(new))
+    if (length(updated) > n) updated <- tail(updated, n)
+    updated
+  }
 }
