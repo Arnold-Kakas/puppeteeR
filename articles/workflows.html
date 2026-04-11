@@ -225,6 +225,24 @@ response as long as it ends with <code>done</code> or
 <span></span>
 <span><span class="co"># "done" means the judge ended it; "continue" means max_rounds fired first</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"judge_verdict"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Custom <code>state_schema</code> and the <code>output</code>
+channel</strong>: when you supply a <code>state_schema</code>, only the
+channels you declare exist. The <code>output</code> channel is optional
+— the workflow runs fine without it, but <code>result$output()</code>
+will error because there is no nominated output channel. Add
+<code>output = list(default = "")</code> to your schema to re-enable
+it:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">state_schema</span> <span class="op">=</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
+<span>  messages      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_last_n.html">reducer_last_n</a></span><span class="op">(</span><span class="fl">8L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  judge_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">"continue"</span><span class="op">)</span>,</span>
+<span>  output        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>   <span class="co"># enables result$output()</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>If you omit <code>output</code>, read the final judge response
+directly:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">msgs</span> <span class="op">&lt;-</span> <span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">msgs</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">msgs</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>  <span class="co"># last message is the judge's closing summary</span></span></code></pre></div>
 <p><strong><code>max_rounds</code> with a judge</strong>: each round
 consumes 3 node executions (optimist + pessimist + judge), but the
 internal termination guard is <code>max_turns(max_rounds * 2)</code> —
@@ -241,7 +259,7 @@ loop<a class="anchor" aria-label="anchor" href="#advisor_workflow-worker-advisor
 agent evaluates it and either approves it or sends it back with specific
 feedback. This pattern minimises cost by running the expensive model
 only for evaluation, not for generation.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/advisor_workflow.html">advisor_workflow</a></span><span class="op">(</span></span>
 <span>  worker  <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>    <span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
@@ -293,7 +311,7 @@ execution (Haiku-tier). The planner creates a step-by-step plan once; a
 pure-R dispatcher routes each step to the correct worker without any LLM
 call; the evaluator decides whether the results are complete or need a
 revised plan.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
 <span>  planner <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>    <span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
@@ -333,7 +351,7 @@ with one step per line in the format
 <code>worker_name: instruction</code>. Lines that do not match this
 format raise an error. A custom <code>parse_plan</code> function can be
 supplied for alternative formats such as JSON:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parse_json_plan</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">text</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">steps</span> <span class="op">&lt;-</span> <span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">fromJSON</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">text</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">steps</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
