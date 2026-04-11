@@ -165,6 +165,26 @@ for (msg in result$get("messages")) cat("---\n", as.character(msg), "\n\n")
 result$get("judge_verdict")
 ```
 
+**Custom `state_schema` and the `output` channel**: when you supply a `state_schema`, only
+the channels you declare exist. The `output` channel is optional — the workflow runs fine
+without it, but `result$output()` will error because there is no nominated output channel.
+Add `output = list(default = "")` to your schema to re-enable it:
+
+```{r debate-judge-output, eval = FALSE}
+state_schema = workflow_state(
+  messages      = list(default = list(), reducer = reducer_last_n(8L)),
+  judge_verdict = list(default = "continue"),
+  output        = list(default = "")   # enables result$output()
+)
+```
+
+If you omit `output`, read the final judge response directly:
+
+```{r debate-judge-no-output, eval = FALSE}
+msgs <- result$get("messages")
+as.character(msgs[[length(msgs)]])  # last message is the judge's closing summary
+```
+
 **`max_rounds` with a judge**: each round consumes 3 node executions (optimist + pessimist +
 judge), but the internal termination guard is `max_turns(max_rounds * 2)` — it does not
 account for judge turns. Set `max_rounds` higher than you need to ensure the judge gets

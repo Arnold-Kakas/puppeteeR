@@ -230,11 +230,14 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
       )
       verdict_str <- tolower(trimws(as.character(verdict)))
       is_done     <- grepl("done", verdict_str, fixed = TRUE)
-      list(
+      update <- list(
         messages      = verdict,
-        judge_verdict = if (is_done) "done" else "continue",
-        output        = if (is_done) as.character(verdict) else state$get("output")
+        judge_verdict = if (is_done) "done" else "continue"
       )
+      if ("output" %in% state$keys()) {
+        update$output <- if (is_done) as.character(verdict) else state$get("output")
+      }
+      update
     }
     g$add_node("judge", judge_fn)
 
@@ -260,7 +263,12 @@ debate_workflow <- function(agents, max_rounds = 5L, judge = NULL,
   }
 
   termination <- max_turns(max_rounds * length(agent_names))
-  g$compile(agents = all_agents, termination = termination, output_channel = "output")
+  has_output <- "output" %in% state_schema$keys()
+  g$compile(
+    agents         = all_agents,
+    termination    = termination,
+    output_channel = if (has_output) "output" else NULL
+  )
 }
 
 #' Build an advisor workflow
