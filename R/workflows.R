@@ -466,7 +466,7 @@ planner_workflow <- function(planner, workers, evaluator = NULL,
   if (is.null(state_schema)) {
     state_schema <- workflow_state(
       messages            = list(default = list(), reducer = reducer_append()),
-      plan                = list(default = list()),
+      plan                = list(default = list(), reducer = reducer_overwrite()),
       plan_index          = list(default = 0L),
       current_instruction = list(default = ""),
       current_worker      = list(default = ""),

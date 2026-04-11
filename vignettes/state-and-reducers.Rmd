@@ -366,7 +366,7 @@ making any LLM calls — only the planner and evaluator consume expensive tokens
 # Default schema used internally by planner_workflow()
 state_schema <- workflow_state(
   messages            = list(default = list(), reducer = reducer_append()),
-  plan                = list(default = list()),          # structured plan steps
+  plan                = list(default = list(), reducer = reducer_overwrite()),  # replaced wholesale on each planner turn
   plan_index          = list(default = 0L),              # dispatcher cursor
   current_instruction = list(default = ""),              # active step instruction
   current_worker      = list(default = ""),              # active step worker
