@@ -321,7 +321,7 @@ fails — whether from a connection error, API timeout, or a bug —
 re-invoking with the same <code>thread_id</code> resumes from the last
 saved state automatically. No work is lost.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span><span class="st">"checkpoints/"</span><span class="op">)</span>   <span class="co"># survives session restarts</span></span>
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span>   <span class="co"># survives session restarts</span></span>
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>  initial_state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Produce an article on quantum computing."</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -342,7 +342,7 @@ saved state automatically. No work is lost.</p>
 <span><span class="op">)</span></span>
 <span><span class="co"># Prints: "Resuming from checkpoint at step N."</span></span></code></pre></div>
 <p>Use <code><a href="../reference/memory_checkpointer.html">memory_checkpointer()</a></code> during development (no files
-written), <code>rds_checkpointer(dir)</code> for single-machine
+written), <code>rds_checkpointer(path)</code> for single-machine
 persistence, and <code>sqlite_checkpointer(path)</code> when you need to
 inspect or query checkpoint history. See
 <code><a href="../articles/checkpointing.html">vignette("checkpointing")</a></code>.</p>
@@ -451,9 +451,57 @@ avoid preamble and numbered lists:</p>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
+<h3 id="persistent-execution-log">Persistent execution log<a class="anchor" aria-label="anchor" href="#persistent-execution-log"></a>
+</h3>
+<p>For custom graphs, add a <code>log</code> channel to your schema and
+write a short label from each node. After the run you get a full ordered
+record of what executed and in what sequence:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
+<span>  messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_append.html">reducer_append</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  result   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  log      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, reducer <span class="op">=</span> <span class="fu"><a href="../reference/reducer_append.html">reducer_append</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"researcher"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">response</span> <span class="op">&lt;-</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">researcher</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="va">response</span>, log <span class="op">=</span> <span class="st">"researcher"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"writer"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">response</span> <span class="op">&lt;-</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">writer</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">response</span><span class="op">)</span>, log <span class="op">=</span> <span class="st">"writer"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"researcher"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"researcher"</span>, <span class="st">"writer"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"writer"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>researcher <span class="op">=</span> <span class="va">researcher</span>, writer <span class="op">=</span> <span class="va">writer</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Explain tidy data."</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plain string labels — use unlist() to collapse to a character vector</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Steps:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"log"</span><span class="op">)</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" → "</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Steps: researcher → writer</span></span></code></pre></div>
+<p>If you log agent responses instead of labels, use
+<code>vapply(..., as.character, character(1))</code> rather than
+<code><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist()</a></code> — ellmer response objects are R6 instances, not
+plain strings:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Inside a node — logging the actual response text:</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>log <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">response</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or at inspection time if you stored raw response objects:</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"log"</span><span class="op">)</span>, <span class="va">as.character</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" → "</span><span class="op">)</span></span></code></pre></div>
+<p>The built-in convenience workflows (<code>sequential_workflow</code>,
+<code>debate_workflow</code>, etc.) do not include a <code>log</code>
+channel in their default schemas. Adding one requires a custom
+<code>state_schema</code> and custom node functions — at that point use
+<code><a href="../reference/state_graph.html">state_graph()</a></code> directly.</p>
+</div>
+<div class="section level3">
 <h3 id="cost-report">Cost report<a class="anchor" aria-label="anchor" href="#cost-report"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span><span class="op">$</span><span class="fu">cost_report</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#   agent      provider   model                      input_tokens output_tokens  cost</span></span>
 <span><span class="co"># 1 planner    Anthropic  claude-opus-4-6                    2341          892  0.042</span></span>
@@ -465,7 +513,7 @@ avoid preamble and numbered lists:</p>
 </h3>
 <p>Check the graph structure before running — especially useful after
 building a custom graph to confirm edges are wired as intended:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"dot"</span><span class="op">)</span>        <span class="co"># interactive Graphviz widget</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"visnetwork"</span><span class="op">)</span> <span class="co"># interactive force-directed graph</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">as_mermaid</span><span class="op">(</span><span class="op">)</span>            <span class="co"># paste into mermaid.live</span></span></code></pre></div>

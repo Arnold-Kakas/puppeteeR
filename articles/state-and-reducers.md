@@ -1,37 +1,39 @@
 # State Channels and Reducers
 
 `WorkflowState` is the shared memory that all nodes in a graph read from
-and write to. This vignette explains how it works, what reducers do, and
-how to design your state schema for different workflow patterns.
+and write to. Think of it as a whiteboard: nodes read whatever is on it,
+write their results back, and the next node picks up from there.
 
-## Two layers of memory
+This vignette explains how that whiteboard is structured, what reducers
+are and why they matter, and how to design a schema that fits your
+workflow.
 
-Before diving into state channels, it’s important to understand that
-puppeteeR has **two independent memory systems** that coexist:
+## Two kinds of memory
 
-**1. WorkflowState channels** — explicit, inspectable, structured. This
-is what nodes read with `state$get()` and write by returning named
-lists. You control it entirely via your schema.
+puppeteeR has two memory systems that coexist independently:
 
-**2. ellmer Chat conversation history** — implicit, per-agent. Each
-`Agent` wraps an
-[`ellmer::Chat`](https://ellmer.tidyverse.org/reference/Chat.html)
-object, which maintains its own internal turn-by-turn history. Every
-time you call `agent$chat("hello")`, ellmer appends the exchange to that
-Chat’s history. The agent “remembers” prior calls at the LLM level
-regardless of what the WorkflowState contains.
+**WorkflowState channels** are explicit, structured, and inspectable.
+Every node reads from them with `state$get("name")` and writes to them
+by returning a named list. You define them up front in a schema.
 
-These two systems do not automatically synchronise. A practical
-consequence: if you reset or restore a WorkflowState from a checkpoint,
-the agents’ internal Chat histories are unaffected. For most workflows
-this is fine. For workflows that fork or replay from checkpoints, you
-may need to reset agent Chat objects manually (using
-`agent$chat_object$set_turns(list())`).
+**ellmer Chat history** is implicit and per-agent. Every
+`agent$chat("...")` call appends the exchange to that agent’s internal
+conversation. The agent accumulates context at the LLM level
+automatically, regardless of what WorkflowState contains.
 
-## Channels and reducers
+These two systems do not synchronise. Resetting or restoring a
+WorkflowState from a checkpoint does not touch any agent’s Chat history.
+For most workflows this is fine; for workflows that fork or replay, you
+may need to reset agent Chat objects manually:
 
-A `WorkflowState` is defined by a **schema** — a named list where each
-entry is a channel:
+``` r
+agent$chat_object$set_turns(list())
+```
+
+## Channels
+
+A channel is a named slot in the state. You declare all channels up
+front in a schema:
 
 ``` r
 ws <- workflow_state(
@@ -41,33 +43,41 @@ ws <- workflow_state(
 )
 ```
 
-Each channel has:
+Each channel needs two things:
 
-- `default` — the value the channel holds before any node writes to it.
-- `reducer` — a two-argument function `function(old, new)` that decides
-  how an incoming update is merged with the current value. If omitted,
-  the default depends on the channel type: `reducer_last_n(20)` for list
-  channels (`default = list(...)`) and
-  [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
-  for all other channels.
+- `default` — the value it holds before any node has written to it.
+- `reducer` — a `function(old, new)` that controls what happens when a
+  node writes a new value. If you omit `reducer`, puppeteeR picks a
+  sensible default automatically (more on this below).
 
-When a node returns an update, `state$update()` applies the reducer for
-each key:
+Channel names are completely free — `status`, `my_counter`,
+`judge_verdict` — any valid R name works. The engine has no reserved
+names. The only rule: the name you declare in the schema must be the
+exact same name used in `state$get()` and in node return values.
+
+## Reducers
+
+A reducer is a two-argument function `function(old, new)` called every
+time a node writes to a channel. It decides how the incoming value is
+merged with the current one.
+
+The simplest possible reducer just replaces the old value:
 
 ``` r
-# Node returns:
-list(status = "done", messages = "All finished.")
-
-# Internally, for each key:
-new_value <- reducer(current_value, incoming_value)
+function(old, new) new
 ```
 
-The reducer is called on **every write**, not just the first. This is
-what makes channels behave differently depending on their reducer.
+A more interesting one appends:
+
+``` r
+function(old, new) c(old, list(new))
+```
+
+puppeteeR ships four built-in reducers that cover almost every use case.
 
 ## Built-in reducers
 
-### `reducer_overwrite()` — replace (default)
+### `reducer_overwrite()` — replace
 
 ``` r
 r <- reducer_overwrite()
@@ -75,12 +85,16 @@ r("old value", "new value")
 #> [1] "new value"
 ```
 
-The current value is discarded and replaced with the new one. This is
-the default when no `reducer` is specified. Use it for scalar state:
-status flags, routing signals, counters, the current draft of a
-document.
+Discards `old` and returns `new`. This is the **default for non-list
+channels** (i.e. anything whose `default` is not a
+[`list()`](https://rdrr.io/r/base/list.html)). Use it for:
 
-### `reducer_append()` — accumulate a list
+- Status flags and routing signals (`"pending"`, `"done"`, `"approved"`)
+- The current version of a document
+- Counters and numeric accumulators where you compute the new value
+  yourself
+
+### `reducer_append()` — accumulate
 
 ``` r
 r <- reducer_append()
@@ -92,23 +106,42 @@ r(list("first"), "second")
 #> [1] "second"
 ```
 
-The incoming value is wrapped in
-[`list()`](https://rdrr.io/r/base/list.html) and concatenated to the
-existing list. Use this for any channel that should **accumulate**
-entries over time — conversation history, log entries, collected
-results.
+Wraps `new` in [`list()`](https://rdrr.io/r/base/list.html) and
+concatenates it to `old`. Use it for any channel that should grow over
+time: conversation history, collected results, log entries.
 
-> **Warning:**
+> **Warning.**
 > [`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md)
-> grows unboundedly. For long-running workflows, consider trimming
-> strategies — e.g. keeping only the last N messages, or summarising
-> older turns.
+> grows without bound. In a long-running workflow, an append channel fed
+> to every LLM call will eventually exceed the context window and cause
+> connection errors. Use `reducer_last_n(n)` instead when passing the
+> channel to agents (see below).
 
-### `reducer_merge()` — shallow list merge
+### `reducer_last_n(n)` — sliding window
+
+``` r
+r <- reducer_last_n(3L)
+r(list("a", "b", "c"), "d")   # drops "a"
+#> [[1]]
+#> [1] "b"
+#> 
+#> [[2]]
+#> [1] "c"
+#> 
+#> [[3]]
+#> [1] "d"
+```
+
+Appends then trims to the most recent `n` entries. This is also the
+**automatic default for list channels** (those with `default = list()`)
+when no `reducer` is specified — with a window of 20. See the pitfall
+section below.
+
+### `reducer_merge()` — shallow merge
 
 ``` r
 r <- reducer_merge()
-r(list(model = "haiku", temp = 0.7), list(temp = 0.2, seed = 42))
+r(list(model = "haiku", temp = 0.7), list(temp = 0.2, seed = 42L))
 #> $model
 #> [1] "haiku"
 #> 
@@ -119,16 +152,55 @@ r(list(model = "haiku", temp = 0.7), list(temp = 0.2, seed = 42))
 #> [1] 42
 ```
 
-Uses [`modifyList()`](https://rdrr.io/r/utils/modifyList.html) to merge
-the incoming named list into the existing one. Keys in `new` overwrite
-matching keys in `old`; keys absent from `new` are preserved. Use for
-nested configuration or metadata that is updated piecemeal.
+Uses [`modifyList()`](https://rdrr.io/r/utils/modifyList.html): keys in
+`new` overwrite matching keys in `old`; keys absent from `new` are
+preserved. Use it for configuration or metadata objects that are updated
+piecemeal.
+
+## The default reducer pitfall
+
+When you declare a list channel without a `reducer`, puppeteeR assigns
+`reducer_last_n(20)` automatically:
+
+``` r
+# These two are equivalent:
+plan = list(default = list())
+plan = list(default = list(), reducer = reducer_last_n(20))
+```
+
+This is almost never what you want for a structured data channel.
+Consider a `plan` channel that holds a list of step objects:
+
+``` r
+planner_fn <- function(state, config) {
+  steps <- parse_plan(response)          # list of 6 step objects
+  list(plan = steps)                     # writes the list of 6 steps
+}
+```
+
+With `reducer_last_n(20)`, this write does not *replace* `plan` with the
+6 steps — it *appends* the entire `steps` list as a single element. The
+result is `list(list(step1, step2, ...))`. When the dispatcher later
+reads `plan[[1]]`, it gets the whole plan, not step 1.
+
+**Rule:** any list channel that is meant to be replaced wholesale must
+declare `reducer = reducer_overwrite()` explicitly:
+
+``` r
+plan = list(default = list(), reducer = reducer_overwrite())
+```
+
+Only declare
+[`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md)
+or
+[`reducer_last_n()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.md)
+for channels that genuinely accumulate entries over time.
 
 ## Designing your schema
 
-### Pattern 1: append for history, overwrite for signals
+### Append for history, overwrite for signals
 
-The most common pattern for multi-turn workflows:
+The most common pattern:
 
 ``` r
 state_schema <- workflow_state(
@@ -138,13 +210,13 @@ state_schema <- workflow_state(
 ```
 
 `messages` accumulates the full conversation. `current_route` is a
-transient routing signal — only the most recent value matters, so
-overwrite is correct.
+transient routing signal — only the latest value matters, so overwrite
+is correct.
 
-### Pattern 2: separate draft from history
+### Separate the current draft from history
 
-When you want agents to revise output without polluting the message
-history:
+When agents revise output iteratively, separate the live draft from the
+audit trail:
 
 ``` r
 state_schema <- workflow_state(
@@ -155,144 +227,63 @@ state_schema <- workflow_state(
 ```
 
 Worker nodes write their output to `latest_draft` (overwrite — always
-the current version). An advisor node reads `latest_draft`, not
-`messages`. Approved drafts can then be moved to `messages` at the end.
-This is the recommended pattern for advisor/revision workflows.
+the current version). The advisor reads `latest_draft`, not `messages`.
+The full history in `messages` serves as an audit trail without
+interfering with evaluation.
 
-### Pattern 3: dedicated verdict channel
+### Dedicated channel per routing signal
 
-When a routing decision needs to survive across nodes without being
-confused with message content:
-
-``` r
-state_schema <- workflow_state(
-  messages       = list(default = list(), reducer = reducer_append()),
-  judge_verdict  = list(default = "continue")
-)
-```
-
-The judge node writes `list(judge_verdict = "done")`. The conditional
-routing function reads `state$get("judge_verdict")` directly — no
-text-scanning the last message required.
-
-## What the default schema does NOT give you
-
-The `messages` channel with
-[`reducer_append()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_append.md)
-gives agents a shared history that grows over time. But the convenience
-workflow constructors (`supervisor_workflow`, `sequential_workflow`,
-`debate_workflow`) do **not** automatically pass the full history to
-every node. Their built-in node functions vary:
-
-| Workflow                      | What the node passes to the LLM            |
-|-------------------------------|--------------------------------------------|
-| `sequential_workflow`         | Last message only (`msgs[[length(msgs)]]`) |
-| `supervisor_workflow` manager | Full history concatenated                  |
-| `supervisor_workflow` workers | Last message only                          |
-| `debate_workflow` debaters    | Full history concatenated                  |
-| `debate_workflow` judge       | Full history concatenated                  |
-
-If your supervisor workers need full context (e.g. a writer needs to see
-what the researcher found), you have two options:
-
-**Option A** — pass full context in the node function:
-
-``` r
-writer_fn <- function(state, config) {
-  msgs    <- state$get("messages")
-  context <- paste(vapply(msgs, as.character, character(1)), collapse = "\n")
-  response <- config$agents$writer$chat(context)
-  list(messages = response)
-}
-```
-
-**Option B** — rely on ellmer’s internal Chat history. Because the
-manager already passed full context to the LLM in its turn, and the
-worker’s Chat object accumulates its own history, the worker agent may
-already “know” prior content if it was involved in earlier turns.
-However, this only works for the same agent across multiple calls — a
-worker agent that is called for the first time has no prior context.
-
-For most supervisor workflows, Option A is safer and more predictable.
-
-## Bugs fixed in the built-in workflows
-
-Two fragilities existed in the original convenience constructors. Both
-are fixed; this section explains what was wrong and how the fixes work —
-both for understanding the design and as examples of how to design state
-correctly in your own workflows.
-
-### Fix 1: supervisor workers now receive full context
-
-**What was wrong.** Worker node functions in `supervisor_workflow`
-passed only the *last* message to the LLM:
-
-``` r
-last <- msgs[[length(msgs)]]
-response <- config$agents[[worker_nm]]$chat(as.character(last))
-```
-
-This meant a writer worker had no idea what the researcher already found
-— it only saw the manager’s most recent delegation instruction.
-
-**Why it matters.** The supervisor pattern assumes workers are
-specialists that execute specific instructions. But meaningful
-instructions usually reference earlier context (“write a conclusion
-based on the research above”). Without full context, workers produce
-responses that are contextually blind.
-
-**The fix.** Workers now concatenate the full message history, identical
-to how the manager node already worked:
-
-``` r
-context  <- paste(vapply(msgs, as.character, character(1L)), collapse = "\n")
-response <- config$agents[[worker_nm]]$chat(context)
-```
-
-### Fix 2: debate judge routing now uses a dedicated channel
-
-**What was wrong.** The judge node returned
-`list(messages = verdict, .judge_verdict = verdict)`. Because keys
-prefixed with `"."` are silently ignored by `state$update()`, the
-`.judge_verdict` key was **never written**. The routing function then
-read the last entry from `messages` and searched it for the word “done”
-— which happened to work only because the judge was always the last node
-to run.
-
-This was fragile: any future refactoring that appended to `messages`
-after the judge node would silently break routing.
-
-**The fix.** The default schema now includes a `judge_verdict` channel:
+Never route based on the last item in an accumulating channel. Use a
+dedicated overwrite channel for every routing decision:
 
 ``` r
 state_schema <- workflow_state(
   messages      = list(default = list(), reducer = reducer_append()),
-  judge_verdict = list(default = "continue")   # new
+  judge_verdict = list(default = "continue")
 )
 ```
 
-The judge node normalises and writes the verdict explicitly:
-
-``` r
-verdict_str   <- tolower(trimws(as.character(verdict)))
-judge_verdict <- if (grepl("done", verdict_str, fixed = TRUE)) "done" else "continue"
-list(messages = verdict, judge_verdict = judge_verdict)
-```
-
-The routing function reads from the channel directly — no text scanning:
+The judge node writes `list(judge_verdict = "done")`. The conditional
+edge reads it directly:
 
 ``` r
 g$add_conditional_edge("judge", function(state) state$get("judge_verdict"), route_map)
 ```
 
-**General principle.** Never route based on the last item in an
-accumulating channel. Use a dedicated overwrite channel for every
-routing signal so the routing function is a clean
-`state$get("signal_name")` with no fragile text parsing.
+No text-scanning the last message, no fragile substring matching. If any
+future node appends to `messages` after the judge runs, routing is
+unaffected.
+
+## What the convenience workflows pass to agents
+
+The `messages` channel accumulates the full conversation, but the
+built-in node functions do not all pass the full history to their LLM
+calls:
+
+| Workflow                      | What the node passes to the LLM |
+|-------------------------------|---------------------------------|
+| `sequential_workflow` workers | Last message only               |
+| `supervisor_workflow` manager | Full history concatenated       |
+| `supervisor_workflow` workers | Full history concatenated       |
+| `debate_workflow` debaters    | Full history concatenated       |
+| `debate_workflow` judge       | Full history concatenated       |
+
+When building custom graphs, pass context explicitly in your node
+function:
+
+``` r
+writer_fn <- function(state, config) {
+  msgs    <- state$get("messages")
+  context <- paste(vapply(msgs, as.character, character(1)), collapse = "\n")
+  list(messages = config$agents$writer$chat(context))
+}
+```
 
 ## Custom reducers
 
-You can supply any two-argument function as a reducer:
+Any `function(old, new)` works as a reducer. A common pattern is to wrap
+the inner function in an outer factory function so it can take
+parameters:
 
 ``` r
 reducer_max <- function() {
@@ -305,17 +296,17 @@ state_schema <- workflow_state(
 )
 ```
 
-`reducer_last_n(n)` is a built-in reducer that keeps only the most
-recent `n` entries. It is particularly useful for long-running
-supervisor or debate workflows where you want to prevent the context
-window from growing too large. `reducer_max` above is an example of a
-fully custom reducer.
+The factory pattern (`reducer_max <- function() { ... }`) is not
+required for zero-argument reducers, but it is consistent with the
+built-in style and makes the schema read cleanly:
+`reducer = reducer_max()` vs
+`reducer = function(old, new) max(old, new, na.rm = TRUE)`.
 
 ## Snapshot and restore
 
-`WorkflowState$snapshot()` returns a plain named list — a point-in-time
-copy of all channel values. This is what checkpointers persist, and what
-`$restore()` reads back.
+`$snapshot()` returns a plain named list — a point-in-time copy of all
+channel values. This is what checkpointers persist, and what
+`$restore()` reads back:
 
 ``` r
 ws <- workflow_state(
@@ -324,146 +315,59 @@ ws <- workflow_state(
 )
 
 ws$update(list(messages = "hello", status = "running"))
-snap <- ws$snapshot()
-# snap is a plain list — safe to saveRDS(), serialize(), etc.
+snap <- ws$snapshot()   # plain list — safe to saveRDS(), serialize(), etc.
 
 ws$update(list(messages = "world"))
-ws$restore(snap)  # rolls back to the post-"hello" state
+ws$restore(snap)        # rolls back to the post-"hello" state
+ws$get("messages")      # list("hello") — "world" is gone
 ```
 
-Note that `$restore()` **bypasses reducers** — it directly overwrites
-channel values with the snapshot contents. This is intentional:
-restoration should reproduce the exact prior state, not merge into it.
+`$restore()` bypasses reducers and directly overwrites channel values
+with the snapshot contents. This is intentional: restoration must
+reproduce the exact prior state, not merge into it.
 
-## New workflow patterns
+## Schema reference for the built-in workflows
 
-### `advisor_workflow()` — worker + advisor feedback loop
+The schemas below are what the convenience constructors use internally.
+They illustrate the design principles above in practice.
 
-Pairs a cheap worker model with an expensive advisor model. The advisor
-evaluates the draft and either approves it or sends it back for
-revision. The state schema uses separate channels for the draft
-(overwrite — always the current version) and the message history (append
-— full audit trail):
+### `advisor_workflow()`
 
 ``` r
-# Default schema used internally by advisor_workflow()
 state_schema <- workflow_state(
   messages         = list(default = list(), reducer = reducer_append()),
-  latest_draft     = list(default = ""),         # current worker output
-  advisor_feedback = list(default = ""),         # advisor's revision notes
-  advisor_verdict  = list(default = "revise"),   # routing signal
-  revision_n       = list(default = 0L)          # revision counter
+  latest_draft     = list(default = ""),         # current worker output — overwrite
+  advisor_feedback = list(default = ""),         # advisor's revision notes — overwrite
+  advisor_verdict  = list(default = "revise"),   # routing signal — overwrite
+  revision_n       = list(default = 0L)          # revision counter — overwrite
 )
 ```
 
-`latest_draft` uses
-[`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
-so it always holds the most recent attempt — not a growing list of all
-drafts. The advisor reads `latest_draft`, not `messages`, which keeps
-the evaluation focused on the current version.
+Graph: `START → worker → advisor → approved → END`
+                                     `↑______________revise___|`
+
+### `planner_workflow()`
 
 ``` r
-library(ellmer)
-
-runner <- advisor_workflow(
-  worker  = agent("writer",  chat_anthropic(model = "claude-haiku-4-5-20251001"),
-                  instructions = "Write clearly and concisely."),
-  advisor = agent("advisor", chat_anthropic(model = "claude-opus-4-6"),
-                  instructions = "Enforce strict quality standards."),
-  max_revisions = 3L
-)
-
-result <- runner$invoke(list(messages = list("Explain what a closure is in R.")))
-result$get("latest_draft")   # final approved text
-result$get("revision_n")     # how many revisions were needed
-```
-
-Graph structure:
-
-    START -> worker -> advisor -> approved -> END
-                               -> revise   -> worker (up to max_revisions times)
-
-The advisor prompt instructs the model to reply with either `"approved"`
-or `"revise: <feedback>"`. The routing function reads `advisor_verdict`
-directly — no text scanning involved.
-
-### `planner_workflow()` — Opus plans, Haiku executes
-
-Separates the expensive planning/evaluation work (Opus) from the cheap
-execution work (Haiku). The key design is a **pure-R dispatcher node**
-that routes plan steps without making any LLM calls — only the planner
-and evaluator consume expensive tokens per round.
-
-``` r
-# Default schema used internally by planner_workflow()
 state_schema <- workflow_state(
   messages            = list(default = list(), reducer = reducer_append()),
-  plan                = list(default = list(), reducer = reducer_overwrite()),  # replaced wholesale on each planner turn
-  plan_index          = list(default = 0L),              # dispatcher cursor
-  current_instruction = list(default = ""),              # active step instruction
-  current_worker      = list(default = ""),              # active step worker
+  plan                = list(default = list(), reducer = reducer_overwrite()),  # replaced wholesale each planner turn
+  plan_index          = list(default = 0L),              # dispatcher cursor — overwrite
+  current_instruction = list(default = ""),              # active step — overwrite
+  current_worker      = list(default = ""),              # active step worker — overwrite
   results             = list(default = list(), reducer = reducer_append()),
-  evaluator_verdict   = list(default = ""),
-  replan_count        = list(default = 0L)
+  evaluator_verdict   = list(default = ""),              # routing signal — overwrite
+  replan_count        = list(default = 0L)               # overwrite
 )
 ```
 
-`plan_index` is an overwrite counter that the dispatcher increments on
-each call. When `plan_index > length(plan)`, the dispatcher routes to
-the evaluator (or END if no evaluator was supplied). This is purely R
-logic — zero LLM tokens spent on routing.
+`plan` uses
+[`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
+because the planner replaces the entire plan on each turn — it is not
+accumulating steps, it is issuing a new set of them. Without the
+explicit reducer, `reducer_last_n(20)` would wrap the new plan as a
+single nested element, breaking the dispatcher.
 
-``` r
-runner <- planner_workflow(
-  planner   = agent("planner",    chat_anthropic(model = "claude-opus-4-6"),
-                    instructions  = "Break tasks into steps for 'researcher' and 'writer'."),
-  workers   = list(
-    researcher = agent("researcher", chat_anthropic(model = "claude-haiku-4-5-20251001")),
-    writer     = agent("writer",     chat_anthropic(model = "claude-haiku-4-5-20251001"))
-  ),
-  evaluator  = agent("evaluator", chat_anthropic(model = "claude-opus-4-6")),
-  max_replans = 2L,
-  max_steps   = 6L
-)
-
-result <- runner$invoke(list(messages = list("Write a short report on tidy data principles.")))
-result$get("results")   # list of all worker outputs
-```
-
-The planner must respond with one step per line:
-`worker_name: instruction`. A custom `parse_plan` function can be
-supplied for alternative formats (e.g. JSON):
-
-``` r
-parse_json_plan <- function(text) {
-  steps <- jsonlite::fromJSON(as.character(text))
-  lapply(seq_len(nrow(steps)), function(i) {
-    list(worker = steps$worker[[i]], instruction = steps$instruction[[i]])
-  })
-}
-
-runner <- planner_workflow(
-  planner    = agent("planner", chat_anthropic(model = "claude-opus-4-6")),
-  workers    = list(analyst = agent("analyst", chat_anthropic())),
-  parse_plan = parse_json_plan
-)
-```
-
-Graph structure:
-
-    START -> planner -> dispatcher -> worker_A ─┐
-                                  -> worker_B ─┤-> dispatcher (loop until plan exhausted)
-                                  -> evaluator -> done   -> END
-                                              -> replan -> planner
-
-**Cost profile.** For a plan with N steps and R replanning rounds:
-
-| Model            | Calls         |
-|------------------|---------------|
-| Opus (planner)   | `R + 1`       |
-| Opus (evaluator) | `R + 1`       |
-| Haiku (workers)  | `N × (R + 1)` |
-
-Compared to `supervisor_workflow` where the manager (Opus) is called
-once per step, the planner workflow calls Opus only once per planning
-round regardless of how many steps the plan contains.
+Graph:
+`START → planner → dispatcher → workers (loop) → evaluator → done → END`
+                                                                                       `↑_______________replan___|`

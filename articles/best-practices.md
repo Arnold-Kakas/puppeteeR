@@ -174,7 +174,7 @@ re-invoking with the same `thread_id` resumes from the last saved state
 automatically. No work is lost.
 
 ``` r
-cp <- rds_checkpointer("checkpoints/")   # survives session restarts
+cp <- rds_checkpointer(path = "checkpoints/")   # survives session restarts
 
 result <- runner$invoke(
   initial_state = list(messages = list("Produce an article on quantum computing.")),
@@ -198,7 +198,7 @@ result <- runner$invoke(
 
 Use
 [`memory_checkpointer()`](https://arnold-kakas.github.io/puppeteeR/reference/memory_checkpointer.md)
-during development (no files written), `rds_checkpointer(dir)` for
+during development (no files written), `rds_checkpointer(path)` for
 single-machine persistence, and `sqlite_checkpointer(path)` when you
 need to inspect or query checkpoint history. See
 [`vignette("checkpointing")`](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md).
@@ -304,6 +304,60 @@ result <- runner$invoke(
   )
 )
 ```
+
+### Persistent execution log
+
+For custom graphs, add a `log` channel to your schema and write a short
+label from each node. After the run you get a full ordered record of
+what executed and in what sequence:
+
+``` r
+schema <- workflow_state(
+  messages = list(default = list(), reducer = reducer_append()),
+  result   = list(default = ""),
+  log      = list(default = list(), reducer = reducer_append())
+)
+
+runner <- state_graph(schema) |>
+  add_node("researcher", function(state, config) {
+    response <- config$agents$researcher$chat(state$get("messages")[[1]])
+    list(messages = response, log = "researcher")
+  }) |>
+  add_node("writer", function(state, config) {
+    response <- config$agents$writer$chat(as.character(state$get("messages")[[2]]))
+    list(result = as.character(response), log = "writer")
+  }) |>
+  add_edge(START, "researcher") |>
+  add_edge("researcher", "writer") |>
+  add_edge("writer", END) |>
+  compile(agents = list(researcher = researcher, writer = writer))
+
+result <- runner$invoke(list(messages = list("Explain tidy data.")))
+
+# Plain string labels — use unlist() to collapse to a character vector
+cat("Steps:", paste(unlist(result$get("log")), collapse = " → "))
+#> Steps: researcher → writer
+```
+
+If you log agent responses instead of labels, use
+`vapply(..., as.character, character(1))` rather than
+[`unlist()`](https://rdrr.io/r/base/unlist.html) — ellmer response
+objects are R6 instances, not plain strings:
+
+``` r
+# Inside a node — logging the actual response text:
+list(log = as.character(response), ...)
+
+# Or at inspection time if you stored raw response objects:
+paste(vapply(result$get("log"), as.character, character(1)), collapse = " → ")
+```
+
+The built-in convenience workflows (`sequential_workflow`,
+`debate_workflow`, etc.) do not include a `log` channel in their default
+schemas. Adding one requires a custom `state_schema` and custom node
+functions — at that point use
+[`state_graph()`](https://arnold-kakas.github.io/puppeteeR/reference/state_graph.md)
+directly.
 
 ### Cost report
 

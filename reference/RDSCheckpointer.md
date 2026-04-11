@@ -40,11 +40,11 @@ Create an RDS checkpointer.
 
 #### Usage
 
-    RDSCheckpointer$new(dir)
+    RDSCheckpointer$new(path)
 
 #### Arguments
 
-- `dir`:
+- `path`:
 
   Character. Directory path where checkpoints are written.
 

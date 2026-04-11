@@ -74,13 +74,14 @@
 execution. This enables:</p>
 <ul>
 <li>
-<strong>Resuming interrupted runs</strong> - restart after a crash
-without re-running completed nodes</li>
+<strong>Resuming interrupted runs</strong> — restart after a crash
+without losing completed work</li>
 <li>
-<strong>Human-in-the-loop</strong> - pause, inspect, modify state,
+<strong>Human-in-the-loop</strong> — pause, inspect, modify state,
 then resume</li>
 <li>
-<strong>Auditing</strong> - replay state at any step</li>
+<strong>Auditing</strong> — inspect state at any step in the run
+history</li>
 </ul>
 <div class="section level2">
 <h2 id="checkpointer-types">Checkpointer types<a class="anchor" aria-label="anchor" href="#checkpointer-types"></a>
@@ -117,11 +118,70 @@ then resume</li>
 </table>
 </div>
 <div class="section level2">
+<h2 id="how-checkpointing-actually-works">How checkpointing actually works<a class="anchor" aria-label="anchor" href="#how-checkpointing-actually-works"></a>
+</h2>
+<p>Understanding the mechanics saves debugging time.</p>
+<p><strong>Saving:</strong> After each node executes, the runner calls
+<code>checkpointer$save(thread_id, step, state$snapshot())</code>. Step
+1 is saved after the first node completes, step 2 after the second, and
+so on. The snapshot is a plain named list of all channel values at that
+moment.</p>
+<p><strong>Resuming:</strong> When <code>invoke()</code> is called again
+with a known <code>thread_id</code>, the runner:</p>
+<ol style="list-style-type: decimal">
+<li>Creates a fresh state from the schema defaults.</li>
+<li>Loads the latest checkpoint:
+<code>checkpointer$load_latest(thread_id)</code>.</li>
+<li>Calls <code>state$restore(snapshot)</code> — this writes the saved
+values directly into the state, bypassing reducers.</li>
+<li>Sets <code>start_step</code> to the last saved step number, so
+subsequent saves don’t overwrite history.</li>
+<li>
+<strong>Starts executing from the entry node (first node in the
+graph)</strong>. There is no automatic node-skipping; execution always
+begins at the start.</li>
+</ol>
+<p>The practical implication: <strong>resumed nodes re-execute, but they
+find the state already populated</strong>. Nodes designed to overwrite
+their output channel will replace it with a (likely identical) new
+value. Nodes that accumulate into an <code>append</code> reducer will
+add to the already-restored list. See the <a href="#idempotent-node-patterns">Idempotent node patterns</a> section
+for how to handle this.</p>
+</div>
+<div class="section level2">
+<h2 id="thread-ids-your-crash-recovery-handle">Thread IDs — your crash recovery handle<a class="anchor" aria-label="anchor" href="#thread-ids-your-crash-recovery-handle"></a>
+</h2>
+<p>Every checkpointed run is identified by a <code>thread_id</code>
+string that you supply. There is no auto-generated ID — you own it.</p>
+<p><strong>Strategy:</strong> make thread IDs meaningful and predictable
+from context you already have:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Good: derive from the input data</span></span>
+<span><span class="va">thread_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"report-"</span>, <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.Date</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"%Y%m%d"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">thread_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"file-"</span>, <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_path_sans_ext</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">input_file</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">thread_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"user-"</span>, <span class="va">user_id</span>, <span class="st">"-task-"</span>, <span class="va">task_id</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Also fine for interactive sessions</span></span>
+<span><span class="va">thread_id</span> <span class="op">&lt;-</span> <span class="st">"my-experiment-v2"</span></span></code></pre></div>
+<p>If a crash happens and you didn’t store the ID, you can recover
+it:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># See every thread that has at least one checkpoint</span></span>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "file-report_2024_q1"  "file-report_2024_q2"  "user-42-task-7"</span></span></code></pre></div>
+<p>For SQLite you can also query the database directly:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="basic-usage">Basic usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
 </h2>
 <p>Pass a checkpointer to <code><a href="../reference/compile.html">compile()</a></code> and a
 <code>thread_id</code> to <code>invoke()</code>.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/memory_checkpointer.html">memory_checkpointer</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
@@ -153,56 +213,190 @@ then resume</li>
 <span><span class="co">#&gt; [1] "incremented to 1"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="rds-checkpointer---survives-across-sessions">RDS checkpointer - survives across sessions<a class="anchor" aria-label="anchor" href="#rds-checkpointer---survives-across-sessions"></a>
+<h2 id="crash-scenario-what-exactly-happens">Crash scenario: what exactly happens<a class="anchor" aria-label="anchor" href="#crash-scenario-what-exactly-happens"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>dir <span class="op">=</span> <span class="st">"~/my_checkpoints"</span><span class="op">)</span></span>
+<p>Here is a step-by-step walkthrough of a crash and recovery using an
+RDS checkpointer.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
+<span>  status  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  result  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"step1"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"counter"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"step2"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"counter"</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2L</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"fetch"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Imagine this reads from a database or API</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>status <span class="op">=</span> <span class="st">"fetched"</span>, result <span class="op">=</span> <span class="st">"raw data"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"process"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># This is the expensive LLM call that might time out</span></span>
+<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">llm</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"result"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>status <span class="op">=</span> <span class="st">"processed"</span>, result <span class="op">=</span> <span class="va">result</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"save"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Write result to disk / database</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"result"</span><span class="op">)</span>, <span class="st">"output.txt"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>status <span class="op">=</span> <span class="st">"saved"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"fetch"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"fetch"</span>, <span class="st">"process"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"process"</span>, <span class="st">"save"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"save"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>llm <span class="op">=</span> <span class="va">my_agent</span><span class="op">)</span>, checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Run 1 — partial success, then crash:</strong></p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
+<span>  <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-99"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Run failed: "</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># "fetch" completed  → checkpoint saved: step=1, status="fetched"</span></span>
+<span><span class="co"># "process" threw a network timeout → no checkpoint written for step 2</span></span>
+<span><span class="co"># Run failed: ...</span></span></code></pre></div>
+<p>At this point the checkpoint directory contains:</p>
+<pre><code>checkpoints/
+  job-99/
+    step_1.rds    ← state after "fetch" completed</code></pre>
+<p><strong>Inspect the checkpoint to understand where things
+stand:</strong></p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "job-99"</span></span>
+<span></span>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">load_latest</span><span class="op">(</span><span class="st">"job-99"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $step</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; $state</span></span>
+<span><span class="co">#&gt; $state$status</span></span>
+<span><span class="co">#&gt; [1] "fetched"</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; $state$result</span></span>
+<span><span class="co">#&gt; [1] "raw data"</span></span></code></pre></div>
+<p><strong>Run 2 — resume with the same thread_id:</strong></p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># No initial_state needed — it comes from the checkpoint</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-99"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Resuming from checkpoint at step 1.</span></span>
+<span><span class="co"># [1] fetch done.</span></span>
+<span><span class="co"># [2] process done.</span></span>
+<span><span class="co"># [3] save done.</span></span></code></pre></div>
+<p>Notice that <code>fetch</code> re-executes. With
+<code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code> channels (the default for scalars),
+this just replaces <code>status</code> and <code>result</code> with the
+same values — harmless. But see the next section for when that is not
+the case.</p>
+</div>
+<div class="section level2">
+<h2 id="idempotent-node-patterns">Idempotent node patterns<a class="anchor" aria-label="anchor" href="#idempotent-node-patterns"></a>
+</h2>
+<p>Because execution always restarts from the first node, nodes that do
+expensive or stateful work should guard against redundant
+re-execution.</p>
+<p><strong>Pattern 1 — skip if output is already set (overwrite
+channels):</strong></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fetch_node</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"result"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>   <span class="co"># already fetched</span></span>
+<span></span>
+<span>  <span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="st">"https://api.example.com/data"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/resp_body_raw.html" class="external-link">resp_body_string</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>result <span class="op">=</span> <span class="va">raw</span>, status <span class="op">=</span> <span class="st">"fetched"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>This node returns an empty list (no update) when <code>result</code>
+is already populated, so it is a no-op on resume.</p>
+<p><strong>Pattern 2 — guard with a status flag:</strong></p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">process_node</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"status"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"processed"</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">answer</span> <span class="op">&lt;-</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">llm</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"result"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>result <span class="op">=</span> <span class="va">answer</span>, status <span class="op">=</span> <span class="st">"processed"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p><strong>Pattern 3 — be careful with
+<code><a href="../reference/reducer_append.html">reducer_append()</a></code>:</strong></p>
+<p>Append reducers accumulate on every call. If a node appends to a
+messages channel and is re-run on resume, it will append again to the
+already-restored list:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># This node is NOT safe to re-run after checkpoint restore</span></span>
+<span><span class="va">log_node</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="st">"step complete"</span><span class="op">)</span>   <span class="co"># appends every time</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Safe version — guard with a marker in the messages list</span></span>
+<span><span class="va">log_node_safe</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">msgs</span> <span class="op">&lt;-</span> <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"messages"</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">msgs</span>, <span class="va">identical</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1L</span><span class="op">)</span>, <span class="st">"step complete"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="st">"step complete"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Alternatively, use <code><a href="../reference/reducer_overwrite.html">reducer_overwrite()</a></code> for channels that
+nodes compute fresh and do not need history.</p>
+</div>
+<div class="section level2">
+<h2 id="rds-checkpointer-survives-across-r-sessions">RDS checkpointer — survives across R sessions<a class="anchor" aria-label="anchor" href="#rds-checkpointer-survives-across-r-sessions"></a>
+</h2>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/my_checkpoints"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"step1"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"status"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"step1-done"</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>   <span class="co"># simulate slow work</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"counter"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1L</span>, status <span class="op">=</span> <span class="st">"step1-done"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"step2"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"status"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"step2-done"</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"counter"</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2L</span>, status <span class="op">=</span> <span class="st">"step2-done"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"step1"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"step1"</span>, <span class="st">"step2"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"step2"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run 1 - say it crashes mid-way</span></span>
-<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Session 1 — crashes after step1</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="fl">5L</span>, status <span class="op">=</span> <span class="st">""</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run 2 - restart; runner resumes from last saved checkpoint</span></span>
-<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Session 2 (new R process) — re-create runner, then resume</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># step1 finds status == "step1-done" → returns list(), no-op</span></span>
+<span><span class="co"># step2 runs fresh → counter = 6 * 2 = 12</span></span></code></pre></div>
 <p>Files are written as <code>~/my_checkpoints/job-42/step_1.rds</code>,
 <code>step_2.rds</code>, etc.</p>
 </div>
 <div class="section level2">
-<h2 id="sqlite-checkpointer---multiple-threads">SQLite checkpointer - multiple threads<a class="anchor" aria-label="anchor" href="#sqlite-checkpointer---multiple-threads"></a>
+<h2 id="sqlite-checkpointer-multiple-threads">SQLite checkpointer — multiple threads<a class="anchor" aria-label="anchor" href="#sqlite-checkpointer-multiple-threads"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span><span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># List all threads with saved state</span></span>
-<span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run two independent threads against the same compiled runner</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"thread-A"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counter <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"thread-B"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span>  <span class="co"># "thread-A" "thread-B"</span></span></code></pre></div>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "thread-A" "thread-B"</span></span>
+<span></span>
+<span><span class="co"># Inspect specific steps</span></span>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">load_step</span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"thread-A"</span>, step <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="va">cp</span><span class="op">$</span><span class="fu">load_latest</span><span class="op">(</span><span class="st">"thread-B"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="human-in-the-loop">Human-in-the-loop<a class="anchor" aria-label="anchor" href="#human-in-the-loop"></a>
 </h2>
 <p>Use <code>update_state()</code> to manually edit checkpointed state
-before resuming a run. This is useful when a human needs to review or
-correct an agent’s output mid-workflow.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+before resuming. The runner treats the edit as one additional checkpoint
+step and resumes from the modified state.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">review_schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
 <span>  task     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
 <span>  draft    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
 <span>  approved <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  feedback <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -212,57 +406,67 @@ correct an agent’s output mid-workflow.</p>
 <span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">review_schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">draft</span> <span class="op">&lt;-</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">writer</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"task"</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">draft</span><span class="op">)</span></span>
+<span>    <span class="co"># Skip if we already have a draft that was not rejected</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"draft"</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"feedback"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">task</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"feedback"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>        <span class="st">"Original draft:\n"</span>, <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"draft"</span><span class="op">)</span>,</span>
+<span>        <span class="st">"\n\nFeedback:\n"</span>, <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"feedback"</span><span class="op">)</span>,</span>
+<span>        <span class="st">"\n\nPlease revise."</span></span>
+<span>      <span class="op">)</span></span>
+<span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>      <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"task"</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">writer</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">task</span><span class="op">)</span>, feedback <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"check_approval"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># gate node - routes based on human-set `approved` flag</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># gate node — routes based on human-set `approved` flag</span></span>
 <span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"revise"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">prompt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
-<span>      <span class="st">"Original draft:\n"</span>, <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"draft"</span><span class="op">)</span>,</span>
-<span>      <span class="st">"\n\nFeedback:\n"</span>, <span class="va">state</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"feedback"</span><span class="op">)</span>,</span>
-<span>      <span class="st">"\n\nPlease revise."</span></span>
-<span>    <span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">config</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">writer</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">prompt</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"write"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="st">"check_approval"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_conditional_edge.html">add_conditional_edge</a></span><span class="op">(</span></span>
 <span>    <span class="st">"check_approval"</span>,</span>
 <span>    routing_fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"approved"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="st">"done"</span> <span class="kw">else</span> <span class="st">"revise"</span>,</span>
-<span>    route_map  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>done <span class="op">=</span> <span class="va">END</span>, revise <span class="op">=</span> <span class="st">"revise"</span><span class="op">)</span></span>
+<span>    route_map  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>done <span class="op">=</span> <span class="va">END</span>, revise <span class="op">=</span> <span class="st">"write"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"revise"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"write"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="st">"check_approval"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>writer <span class="op">=</span> <span class="va">writer</span><span class="op">)</span>, checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 1: run until the gate</span></span>
+<span><span class="co"># Step 1: run — produces a draft, parks at check_approval, then routes to "write"</span></span>
+<span><span class="co"># (approved is FALSE by default, so it loops back)</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>task <span class="op">=</span> <span class="st">"Explain gradient descent."</span><span class="op">)</span>,</span>
 <span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"review-1"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 2: human reviews the draft</span></span>
+<span><span class="co"># Step 2: human reads the draft</span></span>
 <span><span class="va">draft</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">get_state</span><span class="op">(</span><span class="st">"review-1"</span><span class="op">)</span><span class="op">$</span><span class="va">draft</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">draft</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 3: human injects feedback (or approves)</span></span>
+<span><span class="co"># Step 3a: human is not satisfied — inject feedback and resume</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">update_state</span><span class="op">(</span><span class="st">"review-1"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  approved <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  feedback <span class="op">=</span> <span class="st">"Too abstract. Use a concrete analogy."</span></span>
+<span>  feedback <span class="op">=</span> <span class="st">"Too abstract. Use a concrete analogy."</span>,</span>
+<span>  approved <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"review-1"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 4: resume - runner picks up from the checkpoint</span></span>
+<span><span class="co"># Step 3b: human approves — mark it and resume to finish</span></span>
+<span><span class="va">runner</span><span class="op">$</span><span class="fu">update_state</span><span class="op">(</span><span class="st">"review-1"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>approved <span class="op">=</span> <span class="cn">TRUE</span>, feedback <span class="op">=</span> <span class="st">""</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span>config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"review-1"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">get_state</span><span class="op">(</span><span class="st">"review-1"</span><span class="op">)</span><span class="op">$</span><span class="va">draft</span></span></code></pre></div>
+<p><strong>What <code>update_state()</code> does internally:</strong> 1.
+Loads the latest checkpoint for the thread. 2. Applies the updates to
+the snapshot (no reducers — direct replacement). 3. Saves a new
+checkpoint at <code>last_step + 1</code>.</p>
+<p>When <code>invoke()</code> is next called, it loads this new
+checkpoint and resumes with your edits in place.</p>
 </div>
 <div class="section level2">
 <h2 id="step-callbacks">Step callbacks<a class="anchor" aria-label="anchor" href="#step-callbacks"></a>
 </h2>
 <p>The <code>on_step</code> callback fires after each node, giving you a
-lightweight alternative to checkpointing when you just need to observe
-progress.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+lightweight way to observe progress without a full checkpointer.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -292,43 +496,61 @@ progress.</p>
 <div class="section level2">
 <h2 id="resilient-batch-pipelines">Resilient batch pipelines<a class="anchor" aria-label="anchor" href="#resilient-batch-pipelines"></a>
 </h2>
-<p>When processing many files or records, two failure modes matter:</p>
+<p>When processing many files, two failure modes matter:</p>
 <ul>
 <li>
 <strong>Within a run</strong>: the API call in node 3 fails after
-nodes 1 and 2 already ran — without a checkpoint you re-run the
-expensive steps from scratch.</li>
+nodes 1 and 2 already ran. Without a checkpoint you re-run the expensive
+steps from scratch.</li>
 <li>
-<strong>Across runs</strong>: the pipeline crashes on item 7 of 20 —
-you want to skip items 1-6 on retry.</li>
+<strong>Across runs</strong>: the pipeline crashes on item 7 of 20.
+You want to skip items 1–6 on retry.</li>
 </ul>
 <p>Combine a checkpointer (within-run resilience) with a done-file
-tracker (across-run resilience):</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+tracker (across-run resilience). Design each node to be idempotent so
+re-execution on resume is harmless:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>dir <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span></span>
+<span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
+<span>  file_path    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  file_content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  llm_result   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  status       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"read_file"</span>,   <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span> <span class="va">...</span> <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"call_llm"</span>,    <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span> <span class="va">...</span> <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span>  <span class="co"># expensive - worth checkpointing</span></span>
-<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"save_result"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span> <span class="va">...</span> <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"read_file"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"file_content"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>   <span class="co"># already read</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      file_content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"file_path"</span><span class="op">)</span>, warn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span>collapse <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span>,</span>
+<span>      status <span class="op">=</span> <span class="st">"read"</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"call_llm"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"status"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"processed"</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>  <span class="co"># already processed</span></span>
+<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">cfg</span><span class="op">$</span><span class="va">agents</span><span class="op">$</span><span class="va">llm</span><span class="op">$</span><span class="fu">chat</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"file_content"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>llm_result <span class="op">=</span> <span class="va">result</span>, status <span class="op">=</span> <span class="st">"processed"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"save_result"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">cfg</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"status"</span><span class="op">)</span> <span class="op">==</span> <span class="st">"saved"</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>      <span class="co"># already saved</span></span>
+<span>    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"output"</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"file_path"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"llm_result"</span><span class="op">)</span>, <span class="va">out</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>status <span class="op">=</span> <span class="st">"saved"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"read_file"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"read_file"</span>,   <span class="st">"call_llm"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"call_llm"</span>,    <span class="st">"save_result"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"save_result"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span></span>
-<span>    agents       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">...</span><span class="op">)</span>,</span>
-<span>    checkpointer <span class="op">=</span> <span class="va">cp</span>,</span>
-<span>    termination  <span class="op">=</span> <span class="fu"><a href="../reference/max_turns.html">max_turns</a></span><span class="op">(</span><span class="fl">20L</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>llm <span class="op">=</span> <span class="va">my_agent</span><span class="op">)</span>, checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">files</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"source"</span>, pattern <span class="op">=</span> <span class="st">"\\.xlsx$"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">done_file</span>  <span class="op">&lt;-</span> <span class="st">"checkpoints/done.rds"</span></span>
-<span><span class="va">done</span>       <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">done_file</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">done_file</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
-<span><span class="va">remaining</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="va">files</span>, <span class="va">done</span><span class="op">)</span></span>
+<span><span class="va">files</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"source"</span>, pattern <span class="op">=</span> <span class="st">"\\.txt$"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">done_file</span> <span class="op">&lt;-</span> <span class="st">"checkpoints/done.rds"</span></span>
+<span><span class="va">done</span>      <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">done_file</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">done_file</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
-<span><span class="kw">for</span> <span class="op">(</span><span class="va">f</span> <span class="kw">in</span> <span class="va">remaining</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">f</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="va">files</span>, <span class="va">done</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">thread_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"file-"</span>, <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">file_path_sans_ext</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Processing: "</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
@@ -339,34 +561,76 @@ tracker (across-run resilience):</p>
 <span>    <span class="va">done</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">done</span>, <span class="va">f</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">done</span>, <span class="va">done_file</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"  FAILED: "</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span>, <span class="st">" - will retry next run"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"  FAILED: "</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span>, <span class="st">" — will retry next run"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p><strong>What happens on failure:</strong></p>
-<ol style="list-style-type: decimal">
-<li>Node <code>read_file</code> completes - checkpoint saved at step
-1.</li>
-<li>Node <code>call_llm</code> hits a connection error - pipeline
-stops.</li>
-<li>On next run: <code>done.rds</code> does not contain this file, so it
-is retried.</li>
-<li>The runner finds the checkpoint at step 1 and <strong>resumes from
-<code>call_llm</code></strong> - skipping <code>read_file</code>.</li>
-<li>Note: agents also retry automatically (up to 3 times by default)
-before the pipeline fails, so transient connection drops are usually
-handled without needing to re-run at all.</li>
-</ol>
+<p><strong>Failure and recovery walkthrough:</strong></p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Event</th>
+<th>What happens</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>read_file</code> completes</td>
+<td>Checkpoint saved: <code>step=1</code>,
+<code>status="read"</code>
+</td>
+</tr>
+<tr class="even">
+<td>
+<code>call_llm</code> hits a timeout</td>
+<td>No checkpoint for step 2; loop catches the error</td>
+</tr>
+<tr class="odd">
+<td>Next run starts</td>
+<td>
+<code>done.rds</code> does not contain this file → it is
+retried</td>
+</tr>
+<tr class="even">
+<td>
+<code>invoke()</code> called with same <code>thread_id</code>
+</td>
+<td>Checkpoint loaded, state restored: <code>status="read"</code>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code>read_file</code> re-runs</td>
+<td>Guard fires: <code>file_content</code> already set → returns
+<code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, no-op</td>
+</tr>
+<tr class="even">
+<td>
+<code>call_llm</code> re-runs</td>
+<td>Guard fires: <code>status != "processed"</code> → runs the LLM call
+for real</td>
+</tr>
+<tr class="odd">
+<td>Success</td>
+<td>
+<code>done.rds</code> updated; file is skipped on all future
+runs</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level2">
 <h2 id="listing-and-loading-specific-steps">Listing and loading specific steps<a class="anchor" aria-label="anchor" href="#listing-and-loading-specific-steps"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span><span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sqlite_checkpointer.html">sqlite_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"workflow.sqlite"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># All threads</span></span>
 <span><span class="va">cp</span><span class="op">$</span><span class="fu">list_threads</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Load state at a specific step</span></span>
+<span><span class="co"># Load state at a specific step (useful for auditing)</span></span>
 <span><span class="va">cp</span><span class="op">$</span><span class="fu">load_step</span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"job-42"</span>, step <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the most recent state</span></span>

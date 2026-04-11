@@ -5,14 +5,14 @@ Create an RDS file checkpointer
 ## Usage
 
 ``` r
-rds_checkpointer(dir)
+rds_checkpointer(path)
 ```
 
 ## Arguments
 
-- dir:
+- path:
 
-  Character. Directory to store `.rds` files.
+  Character. Directory to store `.rds` checkpoint files.
 
 ## Value
 
