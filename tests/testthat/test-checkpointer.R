@@ -40,7 +40,7 @@ test_that("MemoryCheckpointer list_threads returns thread IDs", {
 
 test_that("RDSCheckpointer save/load_latest round-trips", {
   dir <- tempfile()
-  cp <- rds_checkpointer(dir)
+  cp <- rds_checkpointer(path = dir)
   snap <- list(x = 42L)
   cp$save("run1", 1L, snap)
   result <- cp$load_latest("run1")
@@ -50,7 +50,7 @@ test_that("RDSCheckpointer save/load_latest round-trips", {
 
 test_that("RDSCheckpointer list_threads works", {
   dir <- tempfile()
-  cp <- rds_checkpointer(dir)
+  cp <- rds_checkpointer(path = dir)
   cp$save("t1", 1L, list())
   cp$save("t2", 1L, list())
   expect_setequal(cp$list_threads(), c("t1", "t2"))

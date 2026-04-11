@@ -33,13 +33,13 @@ Persists each checkpoint as an \code{.rds} file under \verb{\{dir\}/\{thread_id\
 \subsection{Method \code{new()}}{
 Create an RDS checkpointer.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{RDSCheckpointer$new(dir)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{RDSCheckpointer$new(path)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{dir}}{Character. Directory path where checkpoints are written.}
+\item{\code{path}}{Character. Directory path where checkpoints are written.}
 }
 \if{html}{\out{</div>}}
 }

@@ -4,10 +4,10 @@
 \alias{rds_checkpointer}
 \title{Create an RDS file checkpointer}
 \usage{
-rds_checkpointer(dir)
+rds_checkpointer(path)
 }
 \arguments{
-\item{dir}{Character. Directory to store \code{.rds} files.}
+\item{path}{Character. Directory to store \code{.rds} checkpoint files.}
 }
 \value{
 An \link{RDSCheckpointer} object.

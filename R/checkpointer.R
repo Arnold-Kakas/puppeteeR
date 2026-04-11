@@ -110,11 +110,11 @@ RDSCheckpointer <- R6::R6Class(
   public = list(
 
     #' @description Create an RDS checkpointer.
-    #' @param dir Character. Directory path where checkpoints are written.
-    initialize = function(dir) {
-      rlang::check_required(dir)
-      if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
-      private$.dir <- dir
+    #' @param path Character. Directory path where checkpoints are written.
+    initialize = function(path) {
+      rlang::check_required(path)
+      if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+      private$.dir <- path
     },
 
     #' @description Save a snapshot as an RDS file.
@@ -274,14 +274,14 @@ memory_checkpointer <- function() MemoryCheckpointer$new()
 
 #' Create an RDS file checkpointer
 #'
-#' @param dir Character. Directory to store `.rds` files.
+#' @param path Character. Directory to store `.rds` checkpoint files.
 #' @returns An [RDSCheckpointer] object.
 #' @export
 #' @examples
 #' \dontrun{
 #' cp <- rds_checkpointer(tempdir())
 #' }
-rds_checkpointer <- function(dir) RDSCheckpointer$new(dir)
+rds_checkpointer <- function(path) RDSCheckpointer$new(path)
 
 #' Create a SQLite checkpointer
 #'
