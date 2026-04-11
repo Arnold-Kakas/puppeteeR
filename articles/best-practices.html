@@ -75,9 +75,9 @@ cost-efficient multi-agent workflows.</p>
 <div class="section level2">
 <h2 id="model-selection">Model selection<a class="anchor" aria-label="anchor" href="#model-selection"></a>
 </h2>
-<p>Anthropic’s model tiers differ significantly in capability and cost.
-Matching the tier to the task is the single highest-leverage cost
-optimisation available.</p>
+<p>Every provider offers a range of model tiers that differ
+significantly in capability and cost. Matching the tier to the task is
+the single highest-leverage cost optimisation available.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -85,32 +85,32 @@ optimisation available.</p>
 <col width="33%">
 </colgroup>
 <thead><tr class="header">
-<th>Model</th>
-<th>ID</th>
-<th>Best for</th>
+<th>Tier</th>
+<th>Role</th>
+<th>Examples</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Claude Haiku 4.5</td>
-<td><code>claude-haiku-4-5-20251001</code></td>
-<td>Simple execution tasks, text transformation, summarisation</td>
+<td>Fast / cheap</td>
+<td>Simple execution: formatting, extraction, first-pass drafts</td>
+<td>Claude Haiku, GPT-4o mini, Gemini Flash</td>
 </tr>
 <tr class="even">
-<td>Claude Sonnet 4.6</td>
-<td><code>claude-sonnet-4-6</code></td>
-<td>Balanced general work, most supervisor workers</td>
+<td>Balanced</td>
+<td>General reasoning, most supervisor workers</td>
+<td>Claude Sonnet, GPT-4o, Gemini Pro</td>
 </tr>
 <tr class="odd">
-<td>Claude Opus 4.6</td>
-<td><code>claude-opus-4-6</code></td>
+<td>Capable / expensive</td>
 <td>Planning, evaluation, complex reasoning, final judgement</td>
+<td>Claude Opus, GPT-4.1, Gemini Ultra</td>
 </tr>
 </tbody>
 </table>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Cheap workers for execution</span></span>
+<span><span class="co"># Cheap workers for execution — swap in any fast model from your preferred provider</span></span>
 <span><span class="va">researcher</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"researcher"</span>,</span>
 <span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
 <span>  instructions <span class="op">=</span> <span class="st">"Research thoroughly and return structured notes."</span></span>
@@ -127,14 +127,25 @@ optimisation available.</p>
 <span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
 <span>  instructions <span class="op">=</span> <span class="st">"Review the analysis and approve or request revisions."</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>Agents in the same workflow can use different providers — mix and
+match freely:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Planner on Anthropic, workers on OpenAI</span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/planner_workflow.html">planner_workflow</a></span><span class="op">(</span></span>
+<span>  planner <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"planner"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    researcher <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"researcher"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_openai.html" class="external-link">chat_openai</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"gpt-4o-mini"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    writer     <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"writer"</span>,     <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_openai.html" class="external-link">chat_openai</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"gpt-4o-mini"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 <p><strong>General rules:</strong></p>
 <ul>
-<li>Use Haiku for any node that does mechanical work: formatting,
-extraction, lookup, first-pass drafts.</li>
-<li>Use Sonnet for nodes that require coherent reasoning but not
-top-tier capability.</li>
-<li>Reserve Opus for the planner, evaluator, or advisor — nodes that are
-called once per round rather than once per step.</li>
+<li>Use the fast/cheap tier for any node that does mechanical work:
+formatting, extraction, lookup, first-pass drafts.</li>
+<li>Use the balanced tier for nodes that require coherent reasoning but
+not top-tier capability.</li>
+<li>Reserve the capable tier for the planner, evaluator, or advisor —
+nodes called once per round rather than once per step.</li>
 </ul>
 <p>The <code><a href="../reference/advisor_workflow.html">advisor_workflow()</a></code> and
 <code><a href="../reference/planner_workflow.html">planner_workflow()</a></code> constructors are designed around this
@@ -163,12 +174,12 @@ why you see all retry attempts fail in sequence.</p>
 <h3 id="fix-bound-the-context-window">Fix: bound the context window<a class="anchor" aria-label="anchor" href="#fix-bound-the-context-window"></a>
 </h3>
 <p>Use the built-in <code>reducer_last_n(n)</code> in your schema:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Keep only the last 6 messages — enough context, bounded payload</span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/debate_workflow.html">debate_workflow</a></span><span class="op">(</span></span>
 <span>  agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    pro <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"pro"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    con <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"con"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>    pro <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"pro"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_openai.html" class="external-link">chat_openai</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,   <span class="co"># any provider works here</span></span>
+<span>    con <span class="op">=</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span><span class="st">"con"</span>, <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_openai.html" class="external-link">chat_openai</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  max_rounds   <span class="op">=</span> <span class="fl">6L</span>,</span>
 <span>  state_schema <span class="op">=</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span></span>
@@ -282,7 +293,7 @@ expected turns to account for extra routing steps and retries.</p>
 </h3>
 <p>For production workflows, combine <code>max_turns</code> with a cost
 ceiling:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">schema</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/workflow_state.html">workflow_state</a></span><span class="op">(</span>result <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -309,7 +320,7 @@ available conditions.</p>
 fails — whether from a connection error, API timeout, or a bug —
 re-invoking with the same <code>thread_id</code> resumes from the last
 saved state automatically. No work is lost.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span><span class="st">"checkpoints/"</span><span class="op">)</span>   <span class="co"># survives session restarts</span></span>
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
@@ -343,10 +354,10 @@ inspect or query checkpoint history. See
 <code>retry_wait = 5</code> seconds. For workflows where agents receive
 large contexts — or when calling during peak API hours — increase the
 wait:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">worker</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>  <span class="st">"worker"</span>,</span>
-<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-haiku-4-5-20251001"</span><span class="op">)</span>,  <span class="co"># or any other provider</span></span>
 <span>  max_retries <span class="op">=</span> <span class="fl">5L</span>,</span>
 <span>  retry_wait  <span class="op">=</span> <span class="fl">15</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -365,10 +376,10 @@ context bounds first.</p>
 <p>The manager’s routing relies on text-matching its response against
 worker names. Vague or multi-worker responses will fall through to
 <code>"DONE"</code> unexpectedly.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">manager</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>  <span class="st">"manager"</span>,</span>
-<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,  <span class="co"># use your preferred capable model</span></span>
 <span>  instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
 <span>    <span class="st">"You coordinate a research team.\n\n"</span>,</span>
 <span>    <span class="st">"Available workers:\n"</span>,</span>
@@ -387,10 +398,10 @@ worker names. Vague or multi-worker responses will fall through to
 response not starting with <code>"approved"</code> triggers a revision
 regardless of content. Use the <code>"revise: &lt;feedback&gt;"</code>
 convention so the feedback passed back to the worker is clean:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">advisor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>  <span class="st">"advisor"</span>,</span>
-<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,  <span class="co"># use your preferred capable model</span></span>
 <span>  instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
 <span>    <span class="st">"You are a strict quality reviewer.\n\n"</span>,</span>
 <span>    <span class="st">"If the response fully answers the task with no factual errors, reply exactly:\n"</span>,</span>
@@ -407,10 +418,10 @@ convention so the feedback passed back to the worker is clean:</p>
 <p>The default parser expects one step per line in
 <code>worker_name: instruction</code> format. Instruct the planner to
 avoid preamble and numbered lists:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">planner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Agent.html">agent</a></span><span class="op">(</span></span>
 <span>  <span class="st">"planner"</span>,</span>
-<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"claude-opus-4-6"</span><span class="op">)</span>,  <span class="co"># use your preferred capable model</span></span>
 <span>  instructions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
 <span>    <span class="st">"You decompose tasks into steps for a team of workers.\n\n"</span>,</span>
 <span>    <span class="st">"Available workers: 'researcher', 'writer'.\n\n"</span>,</span>
@@ -427,7 +438,7 @@ avoid preamble and numbered lists:</p>
 <div class="section level3">
 <h3 id="live-step-logging">Live step logging<a class="anchor" aria-label="anchor" href="#live-step-logging"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>  initial_state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Write a report."</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -442,19 +453,19 @@ avoid preamble and numbered lists:</p>
 <div class="section level3">
 <h3 id="cost-report">Cost report<a class="anchor" aria-label="anchor" href="#cost-report"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span><span class="op">$</span><span class="fu">cost_report</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#   agent      provider   model                      input_tokens output_tokens  cost</span></span>
 <span><span class="co"># 1 planner    Anthropic  claude-opus-4-6                    2341          892  0.042</span></span>
-<span><span class="co"># 2 researcher Anthropic  claude-haiku-4-5-20251001           891          234  0.001</span></span>
-<span><span class="co"># 3 writer     Anthropic  claude-haiku-4-5-20251001           743          412  0.001</span></span></code></pre></div>
+<span><span class="co"># 2 researcher OpenAI     gpt-4o-mini                         891          234  0.001</span></span>
+<span><span class="co"># 3 writer     OpenAI     gpt-4o-mini                         743          412  0.001</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="graph-visualisation">Graph visualisation<a class="anchor" aria-label="anchor" href="#graph-visualisation"></a>
 </h3>
 <p>Check the graph structure before running — especially useful after
 building a custom graph to confirm edges are wired as intended:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"dot"</span><span class="op">)</span>        <span class="co"># interactive Graphviz widget</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">visualize</span><span class="op">(</span><span class="st">"visnetwork"</span><span class="op">)</span> <span class="co"># interactive force-directed graph</span></span>
 <span><span class="va">runner</span><span class="op">$</span><span class="fu">as_mermaid</span><span class="op">(</span><span class="op">)</span>            <span class="co"># paste into mermaid.live</span></span></code></pre></div>

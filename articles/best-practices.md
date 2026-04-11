@@ -5,20 +5,20 @@ multi-agent workflows.
 
 ## Model selection
 
-Anthropic’s model tiers differ significantly in capability and cost.
-Matching the tier to the task is the single highest-leverage cost
-optimisation available.
+Every provider offers a range of model tiers that differ significantly
+in capability and cost. Matching the tier to the task is the single
+highest-leverage cost optimisation available.
 
-| Model             | ID                          | Best for                                                   |
-|-------------------|-----------------------------|------------------------------------------------------------|
-| Claude Haiku 4.5  | `claude-haiku-4-5-20251001` | Simple execution tasks, text transformation, summarisation |
-| Claude Sonnet 4.6 | `claude-sonnet-4-6`         | Balanced general work, most supervisor workers             |
-| Claude Opus 4.6   | `claude-opus-4-6`           | Planning, evaluation, complex reasoning, final judgement   |
+| Tier                | Role                                                        | Examples                                |
+|---------------------|-------------------------------------------------------------|-----------------------------------------|
+| Fast / cheap        | Simple execution: formatting, extraction, first-pass drafts | Claude Haiku, GPT-4o mini, Gemini Flash |
+| Balanced            | General reasoning, most supervisor workers                  | Claude Sonnet, GPT-4o, Gemini Pro       |
+| Capable / expensive | Planning, evaluation, complex reasoning, final judgement    | Claude Opus, GPT-4.1, Gemini Ultra      |
 
 ``` r
 library(ellmer)
 
-# Cheap workers for execution
+# Cheap workers for execution — swap in any fast model from your preferred provider
 researcher <- agent("researcher",
   chat_anthropic(model = "claude-haiku-4-5-20251001"),
   instructions = "Research thoroughly and return structured notes."
@@ -37,14 +37,28 @@ reviewer <- agent("reviewer",
 )
 ```
 
+Agents in the same workflow can use different providers — mix and match
+freely:
+
+``` r
+# Planner on Anthropic, workers on OpenAI
+runner <- planner_workflow(
+  planner = agent("planner", chat_anthropic(model = "claude-opus-4-6")),
+  workers = list(
+    researcher = agent("researcher", chat_openai(model = "gpt-4o-mini")),
+    writer     = agent("writer",     chat_openai(model = "gpt-4o-mini"))
+  )
+)
+```
+
 **General rules:**
 
-- Use Haiku for any node that does mechanical work: formatting,
-  extraction, lookup, first-pass drafts.
-- Use Sonnet for nodes that require coherent reasoning but not top-tier
-  capability.
-- Reserve Opus for the planner, evaluator, or advisor — nodes that are
-  called once per round rather than once per step.
+- Use the fast/cheap tier for any node that does mechanical work:
+  formatting, extraction, lookup, first-pass drafts.
+- Use the balanced tier for nodes that require coherent reasoning but
+  not top-tier capability.
+- Reserve the capable tier for the planner, evaluator, or advisor —
+  nodes called once per round rather than once per step.
 
 The
 [`advisor_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/advisor_workflow.md)
@@ -81,8 +95,8 @@ Use the built-in `reducer_last_n(n)` in your schema:
 # Keep only the last 6 messages — enough context, bounded payload
 runner <- debate_workflow(
   agents = list(
-    pro = agent("pro", chat_anthropic()),
-    con = agent("con", chat_anthropic())
+    pro = agent("pro", chat_openai()),   # any provider works here
+    con = agent("con", chat_openai())
   ),
   max_rounds   = 6L,
   state_schema = workflow_state(
@@ -198,7 +212,7 @@ contexts — or when calling during peak API hours — increase the wait:
 ``` r
 worker <- agent(
   "worker",
-  chat_anthropic(model = "claude-haiku-4-5-20251001"),
+  chat_anthropic(model = "claude-haiku-4-5-20251001"),  # or any other provider
   max_retries = 5L,
   retry_wait  = 15
 )
@@ -219,7 +233,7 @@ worker names. Vague or multi-worker responses will fall through to
 ``` r
 manager <- agent(
   "manager",
-  chat_anthropic(model = "claude-opus-4-6"),
+  chat_anthropic(model = "claude-opus-4-6"),  # use your preferred capable model
   instructions = paste0(
     "You coordinate a research team.\n\n",
     "Available workers:\n",
@@ -242,7 +256,7 @@ the worker is clean:
 ``` r
 advisor <- agent(
   "advisor",
-  chat_anthropic(model = "claude-opus-4-6"),
+  chat_anthropic(model = "claude-opus-4-6"),  # use your preferred capable model
   instructions = paste0(
     "You are a strict quality reviewer.\n\n",
     "If the response fully answers the task with no factual errors, reply exactly:\n",
@@ -263,7 +277,7 @@ preamble and numbered lists:
 ``` r
 planner <- agent(
   "planner",
-  chat_anthropic(model = "claude-opus-4-6"),
+  chat_anthropic(model = "claude-opus-4-6"),  # use your preferred capable model
   instructions = paste0(
     "You decompose tasks into steps for a team of workers.\n\n",
     "Available workers: 'researcher', 'writer'.\n\n",
@@ -297,8 +311,8 @@ result <- runner$invoke(
 runner$cost_report()
 #   agent      provider   model                      input_tokens output_tokens  cost
 # 1 planner    Anthropic  claude-opus-4-6                    2341          892  0.042
-# 2 researcher Anthropic  claude-haiku-4-5-20251001           891          234  0.001
-# 3 writer     Anthropic  claude-haiku-4-5-20251001           743          412  0.001
+# 2 researcher OpenAI     gpt-4o-mini                         891          234  0.001
+# 3 writer     OpenAI     gpt-4o-mini                         743          412  0.001
 ```
 
 ### Graph visualisation

@@ -111,7 +111,7 @@ them sequentially in one node and merging results.
 ``` r
 fanout_schema <- workflow_state(
   question  = list(default = ""),
-  answers   = list(default = list()),
+  answers   = list(default = list(), reducer = reducer_overwrite()),
   consensus = list(default = "")
 )
 ```
