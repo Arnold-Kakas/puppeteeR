@@ -277,18 +277,45 @@ GraphRunner <- R6::R6Class(
     },
 
     .execute_node = function(node_name, state, config) {
-      node_fn <- private$.nodes[[node_name]]$fn
-      if (is.null(node_fn)) {
+      node <- private$.nodes[[node_name]]
+      if (is.null(node)) {
         cli::cli_abort("Node {.val {node_name}} is not registered.")
       }
-      tryCatch(
-        node_fn(state, config),
-        error = function(e) {
-          cli::cli_abort(
-            "Error in node {.val {node_name}}: {conditionMessage(e)}",
-            parent = e
-          )
+      node_fn <- node$fn
+      policy  <- node$retry
+
+      if (is.null(policy)) {
+        return(tryCatch(
+          node_fn(state, config),
+          error = function(e) {
+            cli::cli_abort(
+              "Error in node {.val {node_name}}: {conditionMessage(e)}",
+              parent = e
+            )
+          }
+        ))
+      }
+
+      last_error <- NULL
+      wait       <- policy$wait_seconds
+      for (attempt in seq_len(policy$max_attempts)) {
+        result <- tryCatch(
+          node_fn(state, config),
+          error = function(e) e
+        )
+        if (!inherits(result, "error")) return(result)
+        last_error <- result
+        if (attempt < policy$max_attempts) {
+          if (wait > 0) Sys.sleep(wait)
+          wait <- wait * policy$backoff
         }
+      }
+      cli::cli_abort(
+        c(
+          "Node {.val {node_name}} failed after {policy$max_attempts} attempt(s).",
+          "x" = "{conditionMessage(last_error)}"
+        ),
+        parent = last_error
       )
     },
 

@@ -167,6 +167,9 @@ fast_agent <- agent("fast", chat_anthropic(), max_retries = 0L)
 Each retry attempt logs a warning with the error message and countdown, so you can see what
 is happening without the pipeline silently hanging.
 
+For retrying entire **graph nodes** on error — useful when a node calls an external API that
+may fail — see `vignette("retry-policy")` for the `retry_policy()` interface.
+
 ## 7. Streaming execution
 
 `stream()` returns a `coro` generator that yields after each node - useful for showing progress.
@@ -183,4 +186,5 @@ coro::loop(for (step in gen) {
 - **Custom graphs**: conditional loops, multi-agent collaboration → `vignette("custom-graphs")`
 - **Convenience workflows**: one-liner sequential / supervisor / debate → `vignette("workflows")`
 - **Checkpointing**: resume interrupted runs, human-in-the-loop → `vignette("checkpointing")`
+- **Retry policies**: per-node automatic retries with backoff → `vignette("retry-policy")`
 - **Visualization**: render graph diagrams → `vignette("visualization")`

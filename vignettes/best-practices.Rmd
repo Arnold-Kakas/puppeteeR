@@ -171,22 +171,22 @@ from the last saved state automatically. No work is lost.
 ```{r checkpointer, eval = FALSE}
 cp <- rds_checkpointer(path = "checkpoints/")   # survives session restarts
 
+# Pass the checkpointer at compile() time, not via config
+runner <- state_graph(schema) |>
+  add_node("worker", function(state, config) list()) |>
+  add_edge(START, "worker") |>
+  add_edge("worker", END) |>
+  compile(agents = list(worker = analyst), checkpointer = cp)
+
 result <- runner$invoke(
   initial_state = list(messages = list("Produce an article on quantum computing.")),
-  config = list(
-    thread_id    = "article-run-01",
-    checkpointer = cp,
-    verbose      = TRUE
-  )
+  config = list(thread_id = "article-run-01", verbose = TRUE)
 )
 
 # If it fails partway through, re-run the identical call:
 result <- runner$invoke(
   initial_state = list(messages = list("Produce an article on quantum computing.")),
-  config = list(
-    thread_id    = "article-run-01",
-    checkpointer = cp
-  )
+  config = list(thread_id = "article-run-01")
 )
 # Prints: "Resuming from checkpoint at step N."
 ```

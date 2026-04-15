@@ -4,12 +4,18 @@
 .Ruserdata
 docs
 .claude
+.env
+.Renviron
 
 # root .md files (except README.md and LICENSE.md)
 architecture.md
 code-style.md
 testing.md
 development.md
+roadmap.md
 CLAUDE.md
 debug_schema.R
 .mcp.json
+
+/.quarto/
+**/*.quarto_ipynb

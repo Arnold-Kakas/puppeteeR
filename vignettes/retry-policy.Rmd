@@ -1,0 +1,257 @@
+---
+title: "Node Retry Policies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Node Retry Policies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>"
+)
+library(puppeteeR)
+```
+
+puppeteeR has two independent retry mechanisms:
+
+| Mechanism | What it retries | Where it is configured |
+|---|---|---|
+| **Agent-level** (`max_retries`, `retry_wait`) | A single LLM API call inside `agent$chat()` | `agent()` / `Agent$new()` |
+| **Node-level** (`retry_policy()`) | An entire node function execution | `add_node(..., retry = ...)` |
+
+Agent-level retries handle transient API errors automatically for every LLM call. Node-level
+retry policies are for when the node itself is unreliable — an external HTTP call, a database
+query, or any fallible operation that a node performs beyond just calling an LLM.
+
+## Creating a retry policy
+
+`retry_policy()` takes three arguments:
+
+```{r policy}
+# Retry up to 3 times (1 initial attempt + 2 retries), wait 1 second between attempts
+rp <- retry_policy(max_attempts = 3L, wait_seconds = 1, backoff = 1)
+rp
+```
+
+| Argument | Type | Default | Meaning |
+|---|---|---|---|
+| `max_attempts` | integer ≥ 2 | `3L` | Total number of attempts including the first |
+| `wait_seconds` | number ≥ 0 | `1` | Seconds to wait before the next attempt |
+| `backoff` | number > 0 | `1` | Multiplier applied to `wait_seconds` after each failure |
+
+With `backoff = 1` the wait is constant. With `backoff = 2` the wait doubles each time:
+1 s → 2 s → 4 s → …
+
+## Basic usage
+
+Pass a `retry_policy` to `add_node()` via the `retry` argument:
+
+```{r basic}
+# Simulate a node that fails twice then succeeds
+attempt_n <- 0L
+
+flaky_node <- function(state, config) {
+  attempt_n <<- attempt_n + 1L
+  if (attempt_n < 3L) stop("transient error")
+  list(result = paste0("succeeded on attempt ", attempt_n))
+}
+
+schema <- workflow_state(result = list(default = ""))
+
+runner <- state_graph(schema) |>
+  add_node(
+    "fetch",
+    flaky_node,
+    retry = retry_policy(max_attempts = 3L, wait_seconds = 0)
+  ) |>
+  add_edge(START, "fetch") |>
+  add_edge("fetch", END) |>
+  compile()
+
+final <- runner$invoke()
+final$get("result")
+attempt_n
+```
+
+The node failed twice and succeeded on the third attempt. From the caller's perspective,
+`invoke()` returned normally — the retries were invisible.
+
+## Exhausting all attempts
+
+When all attempts fail, the runner re-throws the last error with a message that includes the
+node name and attempt count:
+
+```{r exhausted, error = TRUE}
+always_fail <- function(state, config) stop("permanent failure")
+
+schema2 <- workflow_state(x = list(default = 0L))
+
+runner2 <- state_graph(schema2) |>
+  add_node(
+    "broken",
+    always_fail,
+    retry = retry_policy(max_attempts = 3L, wait_seconds = 0)
+  ) |>
+  add_edge(START, "broken") |>
+  add_edge("broken", END) |>
+  compile()
+
+tryCatch(
+  runner2$invoke(),
+  error = function(e) message(conditionMessage(e))
+)
+```
+
+## Exponential backoff
+
+For external API calls, exponential backoff reduces load on a struggling service. Set
+`backoff = 2` to double the wait after each failure:
+
+```{r backoff, eval = FALSE}
+runner <- state_graph(workflow_state(data = list(default = ""))) |>
+  add_node(
+    "call_api",
+    function(state, config) {
+      response <- httr2::request("https://api.example.com/data") |>
+        httr2::req_perform() |>
+        httr2::resp_body_string()
+      list(data = response)
+    },
+    retry = retry_policy(max_attempts = 4L, wait_seconds = 1, backoff = 2)
+    # Waits: 1s → 2s → 4s between attempts
+  ) |>
+  add_edge(START, "call_api") |>
+  add_edge("call_api", END) |>
+  compile()
+```
+
+## Node retry vs. agent-level retry
+
+The two mechanisms target different failure modes and compose independently:
+
+```{r comparison, eval = FALSE}
+library(ellmer)
+
+# Agent-level: retries the LLM API call if the HTTP request fails
+researcher <- agent(
+  "researcher",
+  chat_anthropic(),
+  max_retries = 3L,    # 4 total LLM call attempts
+  retry_wait  = 5      # 5 seconds between LLM call retries
+)
+
+# Node-level: retries the entire node function if it throws any error
+runner <- state_graph(workflow_state(result = list(default = ""))) |>
+  add_node(
+    "research",
+    function(state, config) {
+      # This node does two things: fetch data from an external API, then call the LLM.
+      # If either fails, the node-level policy retries the whole thing.
+      raw <- fetch_external_data(state$get("query"))   # may fail with network errors
+      result <- config$agents$researcher$chat(raw)     # may fail with API errors (caught by agent retry first)
+      list(result = result)
+    },
+    retry = retry_policy(max_attempts = 2L, wait_seconds = 30)
+  ) |>
+  add_edge(START, "research") |>
+  add_edge("research", END) |>
+  compile(agents = list(researcher = researcher))
+```
+
+When the node runs:
+
+1. `fetch_external_data()` fails → node-level retry fires after 30 s.
+2. `researcher$chat()` fails → agent-level retry fires (up to 4 attempts, 5 s apart). If all
+   agent retries fail, the error propagates out of `$chat()` and the node-level policy retries
+   the whole node.
+
+The two policies stack: agent-level retry guards individual LLM calls; node-level retry guards
+the entire operation including any surrounding code.
+
+## Disabling retries for a node
+
+Omit the `retry` argument (or pass `NULL`) to run a node without any retry logic. In that
+case a single failure immediately propagates as an error from `invoke()`:
+
+```{r no-retry, eval = FALSE}
+state_graph(schema) |>
+  add_node("fast_fail", function(state, config) stop("oops"))  # retry = NULL (default)
+```
+
+## Combining retry policy with checkpointing
+
+Node-level retries happen within a single `invoke()` call — the checkpointer does not see
+individual retry attempts, only the final outcome of each node. This means:
+
+- A successful retry → checkpoint is saved as if the node succeeded first time.
+- All retries exhausted → the error propagates; no checkpoint is written for that node.
+
+On the next `invoke()` with the same `thread_id`, the runner resumes from the last successful
+checkpoint and retries the failing node from scratch.
+
+```{r checkpoint-combo, eval = FALSE}
+cp <- rds_checkpointer(path = "checkpoints/")
+
+schema <- workflow_state(
+  data   = list(default = ""),
+  result = list(default = "")
+)
+
+runner <- state_graph(schema) |>
+  add_node("fetch", function(state, config) {
+    if (nzchar(state$get("data"))) return(list())   # idempotent: skip if already fetched
+    list(data = fetch_from_api())                   # may fail; checkpoint saved after success
+  }) |>
+  add_node(
+    "process",
+    function(state, config) {
+      list(result = config$agents$llm$chat(state$get("data")))
+    },
+    retry = retry_policy(max_attempts = 3L, wait_seconds = 5, backoff = 2)
+  ) |>
+  add_edge(START, "fetch") |>
+  add_edge("fetch", "process") |>
+  add_edge("process", END) |>
+  compile(agents = list(llm = my_agent), checkpointer = cp)
+
+tryCatch(
+  runner$invoke(config = list(thread_id = "job-1")),
+  error = function(e) message("Failed: ", conditionMessage(e))
+)
+
+# On re-run, fetch is skipped (idempotent guard) and process is retried fresh
+runner$invoke(config = list(thread_id = "job-1"))
+```
+
+## Validation
+
+`retry_policy()` validates its arguments eagerly:
+
+```{r validation, error = TRUE}
+retry_policy(max_attempts = 1L)    # must be >= 2
+```
+
+```{r validation2, error = TRUE}
+retry_policy(wait_seconds = -1)    # must be non-negative
+```
+
+```{r validation3, error = TRUE}
+retry_policy(backoff = 0)          # must be positive
+```
+
+Passing a non-`retry_policy` object to `add_node()` is also rejected:
+
+```{r validation4, error = TRUE}
+schema3 <- workflow_state(x = list(default = 0L))
+state_graph(schema3) |>
+  add_node("n", function(state, config) list(), retry = list(max_attempts = 3L))
+```
+
+## See also
+
+- `?retry_policy` — reference documentation
+- `vignette("checkpointing")` — resuming interrupted runs with checkpointers
+- `vignette("best-practices")` — agent-level retry tuning and context management
