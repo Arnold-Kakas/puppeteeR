@@ -4,7 +4,7 @@
 \alias{add_node}
 \title{Add a node to a graph}
 \usage{
-add_node(graph, name, fn)
+add_node(graph, name, fn, retry = NULL)
 }
 \arguments{
 \item{graph}{A \link{StateGraph} object.}
@@ -13,6 +13,9 @@ add_node(graph, name, fn)
 
 \item{fn}{Function \verb{function(state, config)} returning a named list of
 state updates.}
+
+\item{retry}{A \code{\link[=retry_policy]{retry_policy()}} object or \code{NULL}. When non-\code{NULL}, the
+runner retries the node on error according to the policy.}
 }
 \value{
 \code{graph}, invisibly (for \verb{|>} chaining).

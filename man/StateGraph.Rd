@@ -71,7 +71,7 @@ be passed to \code{\link[=workflow_state]{workflow_state()}}.}
 \subsection{Method \code{add_node()}}{
 Register a node function.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{StateGraph$add_node(name, fn)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{StateGraph$add_node(name, fn, retry = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -81,6 +81,9 @@ Register a node function.
 
 \item{\code{fn}}{Function with signature \verb{function(state, config)} returning a
 named list of state updates.}
+
+\item{\code{retry}}{A \code{\link[=retry_policy]{retry_policy()}} object or \code{NULL}. When non-\code{NULL}, the
+runner retries the node on error according to the policy.}
 }
 \if{html}{\out{</div>}}
 }
