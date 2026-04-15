@@ -45,14 +45,17 @@ StateGraph <- R6::R6Class(
     #' @param name Character. Unique node name.
     #' @param fn Function with signature `function(state, config)` returning a
     #'   named list of state updates.
+    #' @param retry A [retry_policy()] object or `NULL`. When non-`NULL`, the
+    #'   runner retries the node on error according to the policy.
     #' @returns Invisibly, `self` (for chaining with `|>`).
-    add_node = function(name, fn) {
+    add_node = function(name, fn, retry = NULL) {
       check_node_name(name, nodes = NULL, allow_sentinel = FALSE)
       check_is_function(fn)
+      check_is_retry_policy(retry)
       if (name %in% names(private$.nodes)) {
         cli::cli_abort("A node named {.val {name}} already exists.")
       }
-      private$.nodes[[name]] <- list(fn = fn)
+      private$.nodes[[name]] <- list(fn = fn, retry = retry)
       invisible(self)
     },
 
@@ -272,14 +275,16 @@ state_graph <- function(state_schema) {
 #' @param name Character. Unique node name.
 #' @param fn Function `function(state, config)` returning a named list of
 #'   state updates.
+#' @param retry A [retry_policy()] object or `NULL`. When non-`NULL`, the
+#'   runner retries the node on error according to the policy.
 #' @returns `graph`, invisibly (for `|>` chaining).
 #' @export
 #' @examples
 #' schema <- workflow_state(result = list(default = NULL))
 #' g <- state_graph(schema) |>
 #'   add_node("step1", function(state, config) list(result = "done"))
-add_node <- function(graph, name, fn) {
-  graph$add_node(name, fn)
+add_node <- function(graph, name, fn, retry = NULL) {
+  graph$add_node(name, fn, retry = retry)
 }
 
 #' Add a fixed edge to a graph
