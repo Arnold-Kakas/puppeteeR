@@ -5,7 +5,7 @@ Add a node to a graph
 ## Usage
 
 ``` r
-add_node(graph, name, fn)
+add_node(graph, name, fn, retry = NULL)
 ```
 
 ## Arguments
@@ -24,6 +24,13 @@ add_node(graph, name, fn)
 
   Function `function(state, config)` returning a named list of state
   updates.
+
+- retry:
+
+  A
+  [`retry_policy()`](https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.md)
+  object or `NULL`. When non-`NULL`, the runner retries the node on
+  error according to the policy.
 
 ## Value
 

@@ -310,6 +310,9 @@ MIT
 - [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
   : Reducer: overwrite channel with new value
 
+- [`retry_policy()`](https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.md)
+  : Define a retry policy for a graph node
+
 - [`sequential_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.md)
   : Build a sequential workflow
 
@@ -340,6 +343,8 @@ MIT
   Graphs](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md):
 - [Getting Started with
   puppeteeR](https://arnold-kakas.github.io/puppeteeR/articles/getting-started.md):
+- [Node Retry
+  Policies](https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.md):
 - [State Channels and
   Reducers](https://arnold-kakas.github.io/puppeteeR/articles/state-and-reducers.md):
 - [Production Use

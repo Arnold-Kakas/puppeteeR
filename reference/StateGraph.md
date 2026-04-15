@@ -89,7 +89,7 @@ Register a node function.
 
 #### Usage
 
-    StateGraph$add_node(name, fn)
+    StateGraph$add_node(name, fn, retry = NULL)
 
 #### Arguments
 
@@ -101,6 +101,13 @@ Register a node function.
 
   Function with signature `function(state, config)` returning a named
   list of state updates.
+
+- `retry`:
+
+  A
+  [`retry_policy()`](https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.md)
+  object or `NULL`. When non-`NULL`, the runner retries the node on
+  error according to the policy.
 
 ------------------------------------------------------------------------
 

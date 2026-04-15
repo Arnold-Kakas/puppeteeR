@@ -10,6 +10,8 @@
   Graphs](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md):
 - [Getting Started with
   puppeteeR](https://arnold-kakas.github.io/puppeteeR/articles/getting-started.md):
+- [Node Retry
+  Policies](https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.md):
 - [State Channels and
   Reducers](https://arnold-kakas.github.io/puppeteeR/articles/state-and-reducers.md):
 - [Production Use

@@ -177,6 +177,13 @@ fast_agent <- agent("fast", chat_anthropic(), max_retries = 0L)
 Each retry attempt logs a warning with the error message and countdown,
 so you can see what is happening without the pipeline silently hanging.
 
+For retrying entire **graph nodes** on error — useful when a node calls
+an external API that may fail — see
+[`vignette("retry-policy")`](https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.md)
+for the
+[`retry_policy()`](https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.md)
+interface.
+
 ## 7. Streaming execution
 
 `stream()` returns a `coro` generator that yields after each node -
@@ -198,5 +205,7 @@ coro::loop(for (step in gen) {
   [`vignette("workflows")`](https://arnold-kakas.github.io/puppeteeR/articles/workflows.md)
 - **Checkpointing**: resume interrupted runs, human-in-the-loop →
   [`vignette("checkpointing")`](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md)
+- **Retry policies**: per-node automatic retries with backoff →
+  [`vignette("retry-policy")`](https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.md)
 - **Visualization**: render graph diagrams →
   [`vignette("visualization")`](https://arnold-kakas.github.io/puppeteeR/articles/visualization.md)

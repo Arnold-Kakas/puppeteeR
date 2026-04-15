@@ -7,6 +7,7 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/getting-started.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/index.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/state-and-reducers.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/use-cases.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/visualization.html</loc></url>
@@ -48,6 +49,7 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_last_n.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_merge.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/sqlite_checkpointer.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/state_graph.html</loc></url>
@@ -55,5 +57,6 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/text_match.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/visualize_graph.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/workflow_state.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/testing-retry-policy.html</loc></url>
 </urlset>
 

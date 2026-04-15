@@ -37,6 +37,7 @@
     <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
+    <li><a class="dropdown-item" href="../articles/retry-policy.html">Node Retry Policies</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
     <li><a class="dropdown-item" href="../articles/use-cases.html">Production Use Cases</a></li>
     <li><a class="dropdown-item" href="../articles/visualization.html">Visualizing Graphs</a></li>
@@ -323,22 +324,22 @@ saved state automatically. No work is lost.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rds_checkpointer.html">rds_checkpointer</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"checkpoints/"</span><span class="op">)</span>   <span class="co"># survives session restarts</span></span>
 <span></span>
+<span><span class="co"># Pass the checkpointer at compile() time, not via config</span></span>
+<span><span class="va">runner</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/state_graph.html">state_graph</a></span><span class="op">(</span><span class="va">schema</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_node.html">add_node</a></span><span class="op">(</span><span class="st">"worker"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">state</span>, <span class="va">config</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="va">START</span>, <span class="st">"worker"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/add_edge.html">add_edge</a></span><span class="op">(</span><span class="st">"worker"</span>, <span class="va">END</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/compile.html">compile</a></span><span class="op">(</span>agents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>worker <span class="op">=</span> <span class="va">analyst</span><span class="op">)</span>, checkpointer <span class="op">=</span> <span class="va">cp</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>  initial_state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Produce an article on quantum computing."</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    thread_id    <span class="op">=</span> <span class="st">"article-run-01"</span>,</span>
-<span>    checkpointer <span class="op">=</span> <span class="va">cp</span>,</span>
-<span>    verbose      <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>  <span class="op">)</span></span>
+<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"article-run-01"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># If it fails partway through, re-run the identical call:</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">runner</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>  initial_state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>messages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"Produce an article on quantum computing."</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    thread_id    <span class="op">=</span> <span class="st">"article-run-01"</span>,</span>
-<span>    checkpointer <span class="op">=</span> <span class="va">cp</span></span>
-<span>  <span class="op">)</span></span>
+<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thread_id <span class="op">=</span> <span class="st">"article-run-01"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># Prints: "Resuming from checkpoint at step N."</span></span></code></pre></div>
 <p>Use <code><a href="../reference/memory_checkpointer.html">memory_checkpointer()</a></code> during development (no files

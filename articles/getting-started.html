@@ -37,6 +37,7 @@
     <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
+    <li><a class="dropdown-item" href="../articles/retry-policy.html">Node Retry Policies</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
     <li><a class="dropdown-item" href="../articles/use-cases.html">Production Use Cases</a></li>
     <li><a class="dropdown-item" href="../articles/visualization.html">Visualizing Graphs</a></li>
@@ -261,6 +262,10 @@ Override per agent:</p>
 <p>Each retry attempt logs a warning with the error message and
 countdown, so you can see what is happening without the pipeline
 silently hanging.</p>
+<p>For retrying entire <strong>graph nodes</strong> on error — useful
+when a node calls an external API that may fail — see
+<code><a href="../articles/retry-policy.html">vignette("retry-policy")</a></code> for the
+<code><a href="../reference/retry_policy.html">retry_policy()</a></code> interface.</p>
 </div>
 <div class="section level2">
 <h2 id="streaming-execution">7. Streaming execution<a class="anchor" aria-label="anchor" href="#streaming-execution"></a>
@@ -288,6 +293,10 @@ supervisor / debate → <code><a href="../articles/workflows.html">vignette("wor
 <li>
 <strong>Checkpointing</strong>: resume interrupted runs,
 human-in-the-loop → <code><a href="../articles/checkpointing.html">vignette("checkpointing")</a></code>
+</li>
+<li>
+<strong>Retry policies</strong>: per-node automatic retries with
+backoff → <code><a href="../articles/retry-policy.html">vignette("retry-policy")</a></code>
 </li>
 <li>
 <strong>Visualization</strong>: render graph diagrams →

@@ -91,6 +91,9 @@
 - [`reducer_overwrite()`](https://arnold-kakas.github.io/puppeteeR/reference/reducer_overwrite.md)
   : Reducer: overwrite channel with new value
 
+- [`retry_policy()`](https://arnold-kakas.github.io/puppeteeR/reference/retry_policy.md)
+  : Define a retry policy for a graph node
+
 - [`sequential_workflow()`](https://arnold-kakas.github.io/puppeteeR/reference/sequential_workflow.md)
   : Build a sequential workflow
 
