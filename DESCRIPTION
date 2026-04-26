@@ -1,6 +1,6 @@
 Package: puppeteeR
 Title: LLM Multi-Agent Orchestrator Built on 'ellmer'
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Arnold", "Kakas", email = "arnold@example.com", role = c("aut", "cre"))
 Description: Graph-based workflow engine for orchestrating multiple large language
