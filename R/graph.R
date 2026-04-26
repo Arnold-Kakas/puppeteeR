@@ -124,16 +124,44 @@ StateGraph <- R6::R6Class(
     #' @description Validate and compile the graph into a [GraphRunner].
     #' @param agents Named list of `Agent` objects passed to node functions via
     #'   `config$agents`.
-    #' @param checkpointer A [Checkpointer] object or `NULL`.
+    #' @param checkpointer A [Checkpointer] object or `NULL`. Required when
+    #'   `interrupt_before` or `interrupt_after` is non-empty.
     #' @param termination A termination condition (from [max_turns()] etc.) or
     #'   `NULL`.
     #' @param output_channel Character or `NULL`. The channel whose value is
     #'   returned by `WorkflowState$output()`. If `NULL`, `$output()` will
     #'   error unless set by a workflow constructor.
+    #' @param interrupt_before Character vector of node names. Execution pauses
+    #'   **before** each listed node and returns control to the caller.
+    #' @param interrupt_after Character vector of node names. Execution pauses
+    #'   **after** each listed node and returns control to the caller.
     #' @returns A [GraphRunner] object ready to execute.
     compile = function(agents = list(), checkpointer = NULL, termination = NULL,
-                       output_channel = NULL) {
+                       output_channel = NULL,
+                       interrupt_before = character(), interrupt_after = character()) {
       private$.validate(has_termination = !is.null(termination))
+
+      if (length(interrupt_before) > 0L || length(interrupt_after) > 0L) {
+        if (is.null(checkpointer)) {
+          cli::cli_abort(
+            "A {.cls Checkpointer} is required when {.arg interrupt_before} or \\
+             {.arg interrupt_after} is set."
+          )
+        }
+        unknown_before <- setdiff(interrupt_before, names(private$.nodes))
+        if (length(unknown_before) > 0L) {
+          cli::cli_abort(
+            "{.arg interrupt_before} contains unknown node(s): {.val {unknown_before}}."
+          )
+        }
+        unknown_after <- setdiff(interrupt_after, names(private$.nodes))
+        if (length(unknown_after) > 0L) {
+          cli::cli_abort(
+            "{.arg interrupt_after} contains unknown node(s): {.val {unknown_after}}."
+          )
+        }
+      }
+
       GraphRunner$new(
         nodes             = private$.nodes,
         edges             = private$.edges,
@@ -142,7 +170,9 @@ StateGraph <- R6::R6Class(
         agents            = agents,
         checkpointer      = checkpointer,
         termination       = termination,
-        output_channel    = output_channel
+        output_channel    = output_channel,
+        interrupt_before  = interrupt_before,
+        interrupt_after   = interrupt_after
       )
     },
 
@@ -308,10 +338,17 @@ add_edge <- function(graph, from, to) {
 #'
 #' @param graph A [StateGraph] object.
 #' @param agents Named list of `Agent` objects.
-#' @param checkpointer A [Checkpointer] or `NULL`.
+#' @param checkpointer A [Checkpointer] or `NULL`. Required when
+#'   `interrupt_before` or `interrupt_after` is non-empty.
 #' @param termination A termination condition or `NULL`.
 #' @param output_channel Character or `NULL`. Channel returned by
 #'   `WorkflowState$output()` after `$invoke()`.
+#' @param interrupt_before Character vector of node names. Execution pauses
+#'   before each listed node and returns control to the caller. Requires a
+#'   checkpointer and a `thread_id` in `config`.
+#' @param interrupt_after Character vector of node names. Execution pauses
+#'   after each listed node and returns control to the caller. Requires a
+#'   checkpointer and a `thread_id` in `config`.
 #' @returns A [GraphRunner] object.
 #' @export
 #' @examples
@@ -322,9 +359,11 @@ add_edge <- function(graph, from, to) {
 #'   add_edge("step1", END) |>
 #'   compile(output_channel = "result")
 compile <- function(graph, agents = list(), checkpointer = NULL, termination = NULL,
-                    output_channel = NULL) {
+                    output_channel = NULL,
+                    interrupt_before = character(), interrupt_after = character()) {
   graph$compile(agents = agents, checkpointer = checkpointer, termination = termination,
-                output_channel = output_channel)
+                output_channel = output_channel,
+                interrupt_before = interrupt_before, interrupt_after = interrupt_after)
 }
 
 #' Add a conditional edge to a graph

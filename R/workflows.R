@@ -41,7 +41,9 @@ sequential_workflow <- function(agents, state_schema = NULL) {
         msgs <- state$get("messages")
         last <- if (length(msgs) > 0L) msgs[[length(msgs)]] else ""
         response <- config$agents[[agent_nm]]$chat(as.character(last))
-        list(messages = response, output = as.character(response))
+        updates <- list(messages = response)
+        if ("output" %in% state$keys()) updates$output <- as.character(response)
+        updates
       }
       g$add_node(agent_nm, node_fn)
     })
@@ -353,8 +355,8 @@ advisor_workflow <- function(worker, advisor, max_revisions = 3L,
       "Task: ", task,
       "\n\nDraft response:\n", draft,
       "\n\nEvaluate the draft. Reply with either:\n",
-      "  'approved' — if it meets quality standards\n",
-      "  'revise: <feedback>' — if it needs improvement"
+      "  'approved' - if it meets quality standards\n",
+      "  'revise: <feedback>' - if it needs improvement"
     ))
 
     verdict_str <- tolower(trimws(as.character(verdict_raw)))

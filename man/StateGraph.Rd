@@ -156,7 +156,9 @@ Validate and compile the graph into a \link{GraphRunner}.
   agents = list(),
   checkpointer = NULL,
   termination = NULL,
-  output_channel = NULL
+  output_channel = NULL,
+  interrupt_before = character(),
+  interrupt_after = character()
 )}\if{html}{\out{</div>}}
 }
 
@@ -166,7 +168,8 @@ Validate and compile the graph into a \link{GraphRunner}.
 \item{\code{agents}}{Named list of \code{Agent} objects passed to node functions via
 \code{config$agents}.}
 
-\item{\code{checkpointer}}{A \link{Checkpointer} object or \code{NULL}.}
+\item{\code{checkpointer}}{A \link{Checkpointer} object or \code{NULL}. Required when
+\code{interrupt_before} or \code{interrupt_after} is non-empty.}
 
 \item{\code{termination}}{A termination condition (from \code{\link[=max_turns]{max_turns()}} etc.) or
 \code{NULL}.}
@@ -174,6 +177,12 @@ Validate and compile the graph into a \link{GraphRunner}.
 \item{\code{output_channel}}{Character or \code{NULL}. The channel whose value is
 returned by \code{WorkflowState$output()}. If \code{NULL}, \verb{$output()} will
 error unless set by a workflow constructor.}
+
+\item{\code{interrupt_before}}{Character vector of node names. Execution pauses
+\strong{before} each listed node and returns control to the caller.}
+
+\item{\code{interrupt_after}}{Character vector of node names. Execution pauses
+\strong{after} each listed node and returns control to the caller.}
 }
 \if{html}{\out{</div>}}
 }

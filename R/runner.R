@@ -19,9 +19,12 @@ GraphRunner <- R6::R6Class(
     #' @param termination A `termination_condition` or `NULL`.
     #' @param output_channel Character or `NULL`. Name of the channel returned
     #'   by `WorkflowState$output()` after `$invoke()`.
+    #' @param interrupt_before Character vector of node names to pause before.
+    #' @param interrupt_after Character vector of node names to pause after.
     initialize = function(nodes, edges, conditional_edges,
                           state_schema, agents, checkpointer, termination,
-                          output_channel = NULL) {
+                          output_channel = NULL,
+                          interrupt_before = character(), interrupt_after = character()) {
       private$.nodes             <- nodes
       private$.edges             <- edges
       private$.conditional_edges <- conditional_edges
@@ -30,6 +33,8 @@ GraphRunner <- R6::R6Class(
       private$.checkpointer      <- checkpointer
       private$.termination       <- termination
       private$.output_channel    <- output_channel
+      private$.interrupt_before  <- interrupt_before
+      private$.interrupt_after   <- interrupt_after
       private$.adjacency         <- private$.build_adjacency()
     },
 
@@ -37,47 +42,111 @@ GraphRunner <- R6::R6Class(
     #' @param initial_state Named list of initial channel overrides.
     #' @param config Named list of run-time configuration:
     #'   - `thread_id`: character, identifies this run for checkpointing.
+    #'     Required when the graph has `interrupt_before` or `interrupt_after`
+    #'     points.
     #'   - `max_iterations`: integer, cycle guard (default 25).
-    #'   - `on_step`: `function(node_name, state)` callback after each node.
+    #'   - `on_step`: `function(node_name, state)` callback after each node
+    #'     (kept for backwards compatibility; prefer `on_event`).
+    #'   - `on_event`: `function(event)` callback fired around each node.
+    #'     `event` is a list with fields `type` (`"node_start"` or `"node_end"`),
+    #'     `node` (character), `iteration` (integer), and `data` (a list with
+    #'     field `updates` on `"node_end"`, `NULL` on `"node_start"`).
     #'   - `verbose`: logical, print step info via `cli` (default `FALSE`).
-    #' @returns The final [WorkflowState] object.
+    #' @returns The final [WorkflowState] object. If the run was paused at an
+    #'   interrupt point, the returned state reflects the graph at that moment;
+    #'   call `$invoke()` again with the same `thread_id` to resume.
     invoke = function(initial_state = list(), config = list()) {
-      state <- private$.init_state(initial_state)
+      state  <- private$.init_state(initial_state)
       config <- private$.enrich_config(config)
 
-      thread_id      <- config$thread_id
-      max_iter       <- config$max_iterations %||% 25L
-      on_step        <- config$on_step
-      verbose        <- isTRUE(config$verbose)
+      thread_id        <- config$thread_id
+      max_iter         <- config$max_iterations %||% 25L
+      on_step          <- config$on_step
+      on_event         <- config$on_event
+      verbose          <- isTRUE(config$verbose)
+      interrupt_before <- private$.interrupt_before
+      interrupt_after  <- private$.interrupt_after
 
-      start_step <- 0L
+      has_interrupts <- length(interrupt_before) > 0L || length(interrupt_after) > 0L
+      if (has_interrupts && is.null(thread_id)) {
+        cli::cli_abort(
+          "A {.arg thread_id} must be supplied in {.arg config} when the graph has interrupt points."
+        )
+      }
+
+      start_step           <- 0L
+      skip_first_interrupt <- FALSE
+      current_node         <- private$.entry_node()
+
       if (!is.null(private$.checkpointer) && !is.null(thread_id)) {
         saved <- private$.checkpointer$load_latest(thread_id)
         if (!is.null(saved)) {
-          state$restore(saved$state)
+          raw_snap   <- saved$state
           start_step <- saved$step
-          if (verbose) {
-            cli::cli_inform("Resuming from checkpoint at step {start_step}.")
+          if (verbose) cli::cli_inform("Resuming from checkpoint at step {start_step}.")
+
+          was_interrupted <- isTRUE(raw_snap[[".interrupted"]])
+          saved_node      <- raw_snap[[".current_node"]]
+          interrupt_type  <- raw_snap[[".interrupt_type"]]
+
+          state$restore(raw_snap)
+
+          if (was_interrupted) {
+            if (identical(interrupt_type, "before")) {
+              current_node         <- saved_node
+              skip_first_interrupt <- TRUE
+            } else {
+              next_node <- private$.resolve_next(saved_node, state)
+              if (is_sentinel(next_node) && as.character(next_node) == "__END__") {
+                return(state)
+              }
+              current_node <- as.character(next_node)
+            }
           }
         }
       }
 
-      entry <- private$.entry_node()
-      current_node <- entry
-
       for (iter in seq_len(max_iter)) {
         abs_step <- start_step + iter
+
+        if (!skip_first_interrupt && current_node %in% interrupt_before) {
+          if (verbose) {
+            cli::cli_inform("Interrupted before {.val {current_node}} at step {abs_step}.")
+          }
+          private$.save_checkpoint(thread_id, abs_step, state,
+                                   interrupted    = TRUE,
+                                   current_node   = current_node,
+                                   interrupt_type = "before")
+          return(state)
+        }
+        skip_first_interrupt <- FALSE
+
+        if (is.function(on_event)) {
+          on_event(list(type = "node_start", node = current_node,
+                        data = NULL, iteration = iter))
+        }
 
         updates <- private$.execute_node(current_node, state, config)
         state$update(updates)
 
-        if (!is.null(private$.checkpointer) && !is.null(thread_id)) {
-          private$.checkpointer$save(thread_id, abs_step, state$snapshot())
+        if (is.function(on_event)) {
+          on_event(list(type = "node_end", node = current_node,
+                        data = list(updates = updates), iteration = iter))
         }
 
-        if (verbose) {
-          cli::cli_inform("[{iter}] {current_node} done.")
+        interrupted_after <- current_node %in% interrupt_after
+        private$.save_checkpoint(thread_id, abs_step, state,
+                                 interrupted    = interrupted_after,
+                                 current_node   = current_node,
+                                 interrupt_type = if (interrupted_after) "after" else NULL)
+        if (interrupted_after) {
+          if (verbose) {
+            cli::cli_inform("Interrupted after {.val {current_node}} at step {abs_step}.")
+          }
+          return(state)
         }
+
+        if (verbose) cli::cli_inform("[{iter}] {current_node} done.")
         if (is.function(on_step)) on_step(current_node, state)
 
         total_cost <- private$.total_cost()
@@ -89,7 +158,7 @@ GraphRunner <- R6::R6Class(
 
         next_node <- private$.resolve_next(current_node, state)
         if (is_sentinel(next_node) && as.character(next_node) == "__END__") break
-        current_node <- next_node
+        current_node <- as.character(next_node)
       }
 
       state
@@ -142,7 +211,9 @@ GraphRunner <- R6::R6Class(
         return(NULL)
       }
       result <- private$.checkpointer$load_latest(thread_id)
-      if (is.null(result)) NULL else result$state
+      if (is.null(result)) return(NULL)
+      snap <- result$state
+      snap[!startsWith(names(snap), ".")]
     },
 
     #' @description Manually update a checkpointed state (human-in-the-loop).
@@ -220,6 +291,8 @@ GraphRunner <- R6::R6Class(
     .checkpointer      = NULL,
     .termination       = NULL,
     .output_channel    = NULL,
+    .interrupt_before  = character(),
+    .interrupt_after   = character(),
 
     .build_adjacency = function() {
       adj <- list()
@@ -317,6 +390,21 @@ GraphRunner <- R6::R6Class(
         ),
         parent = last_error
       )
+    },
+
+    .save_checkpoint = function(thread_id, step, state,
+                                 interrupted = FALSE,
+                                 current_node = NULL,
+                                 interrupt_type = NULL) {
+      if (is.null(private$.checkpointer) || is.null(thread_id)) return(invisible(NULL))
+      snap <- state$snapshot()
+      if (interrupted) {
+        snap[[".interrupted"]]    <- TRUE
+        snap[[".current_node"]]   <- current_node
+        snap[[".interrupt_type"]] <- interrupt_type
+      }
+      private$.checkpointer$save(thread_id, step, snap)
+      invisible(NULL)
     },
 
     .total_cost = function() {

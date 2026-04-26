@@ -9,7 +9,9 @@ compile(
   agents = list(),
   checkpointer = NULL,
   termination = NULL,
-  output_channel = NULL
+  output_channel = NULL,
+  interrupt_before = character(),
+  interrupt_after = character()
 )
 }
 \arguments{
@@ -17,12 +19,21 @@ compile(
 
 \item{agents}{Named list of \code{Agent} objects.}
 
-\item{checkpointer}{A \link{Checkpointer} or \code{NULL}.}
+\item{checkpointer}{A \link{Checkpointer} or \code{NULL}. Required when
+\code{interrupt_before} or \code{interrupt_after} is non-empty.}
 
 \item{termination}{A termination condition or \code{NULL}.}
 
 \item{output_channel}{Character or \code{NULL}. Channel returned by
 \code{WorkflowState$output()} after \verb{$invoke()}.}
+
+\item{interrupt_before}{Character vector of node names. Execution pauses
+before each listed node and returns control to the caller. Requires a
+checkpointer and a \code{thread_id} in \code{config}.}
+
+\item{interrupt_after}{Character vector of node names. Execution pauses
+after each listed node and returns control to the caller. Requires a
+checkpointer and a \code{thread_id} in \code{config}.}
 }
 \value{
 A \link{GraphRunner} object.

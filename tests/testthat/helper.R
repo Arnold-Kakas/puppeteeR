@@ -34,3 +34,34 @@ skip_if_no_api_key <- function(var = "ANTHROPIC_API_KEY") {
     message = paste("No", var, "found - skipping integration test.")
   )
 }
+
+local_llm_base_url <- function() {
+  Sys.getenv("LOCAL_LLM_BASE_URL", "http://localhost:1234/v1")
+}
+
+local_llm_model <- function() {
+  Sys.getenv("LOCAL_LLM_MODEL", "qwen/qwen3.5-9b")
+}
+
+skip_if_no_local_llm <- function() {
+  base_url <- local_llm_base_url()
+  host <- sub("/v1$", "", base_url)
+  reachable <- tryCatch({
+    con <- url(paste0(host, "/v1/models"), open = "r")
+    close(con)
+    TRUE
+  }, error = function(e) FALSE, warning = function(w) FALSE)
+  testthat::skip_if(
+    !reachable,
+    paste0("Local LLM not reachable at ", base_url,
+           " - start LM Studio and load a model first.")
+  )
+}
+
+make_local_chat <- function() {
+  ellmer::chat_openai(
+    base_url = local_llm_base_url(),
+    api_key  = "lm-studio",
+    model    = local_llm_model()
+  )
+}

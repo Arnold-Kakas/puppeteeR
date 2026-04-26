@@ -4,7 +4,9 @@
 \alias{GraphRunner}
 \title{GraphRunner R6 class}
 \value{
-The final \link{WorkflowState} object.
+The final \link{WorkflowState} object. If the run was paused at an
+interrupt point, the returned state reflects the graph at that moment;
+call \verb{$invoke()} again with the same \code{thread_id} to resume.
 
 A \code{coro} generator yielding
 \code{list(node, state_snapshot, iteration)}.
@@ -55,7 +57,9 @@ Initialise the runner. Called internally by \code{StateGraph$compile()}.
   agents,
   checkpointer,
   termination,
-  output_channel = NULL
+  output_channel = NULL,
+  interrupt_before = character(),
+  interrupt_after = character()
 )}\if{html}{\out{</div>}}
 }
 
@@ -78,6 +82,10 @@ Initialise the runner. Called internally by \code{StateGraph$compile()}.
 
 \item{\code{output_channel}}{Character or \code{NULL}. Name of the channel returned
 by \code{WorkflowState$output()} after \verb{$invoke()}.}
+
+\item{\code{interrupt_before}}{Character vector of node names to pause before.}
+
+\item{\code{interrupt_after}}{Character vector of node names to pause after.}
 }
 \if{html}{\out{</div>}}
 }
@@ -99,8 +107,15 @@ Execute the graph and return the final state.
 \item{\code{config}}{Named list of run-time configuration:
 \itemize{
 \item \code{thread_id}: character, identifies this run for checkpointing.
+Required when the graph has \code{interrupt_before} or \code{interrupt_after}
+points.
 \item \code{max_iterations}: integer, cycle guard (default 25).
-\item \code{on_step}: \verb{function(node_name, state)} callback after each node.
+\item \code{on_step}: \verb{function(node_name, state)} callback after each node
+(kept for backwards compatibility; prefer \code{on_event}).
+\item \code{on_event}: \verb{function(event)} callback fired around each node.
+\code{event} is a list with fields \code{type} (\code{"node_start"} or \code{"node_end"}),
+\code{node} (character), \code{iteration} (integer), and \code{data} (a list with
+field \code{updates} on \code{"node_end"}, \code{NULL} on \code{"node_start"}).
 \item \code{verbose}: logical, print step info via \code{cli} (default \code{FALSE}).
 }}
 }

@@ -18,3 +18,5 @@
 ^LICENSE\.md$
 ^pkgdown$
 ^\.github$
+^roadmap\.md$
+^testing-retry-policy\.md$

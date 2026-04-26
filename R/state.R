@@ -112,6 +112,7 @@ WorkflowState <- R6::R6Class(
     #' @param snap Named list previously produced by `$snapshot()`.
     #' @returns Invisibly, `self`.
     restore = function(snap) {
+      snap <- snap[!startsWith(names(snap), ".")]
       unknown <- setdiff(names(snap), names(private$.data))
       if (length(unknown) > 0L) {
         cli::cli_abort("Snapshot contains unknown channel(s): {.val {unknown}}.")
@@ -257,6 +258,7 @@ reducer_merge <- function() {
 #'
 #' @param n Positive integer. Maximum number of entries to retain.
 #' @returns A two-argument function `function(old, new)`.
+#' @importFrom utils tail
 #' @export
 #' @examples
 #' r <- reducer_last_n(3L)
