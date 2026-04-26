@@ -9,7 +9,7 @@ call GraphRunner$new() directly; use StateGraph$compile()."><meta property="og:i
 
     <a class="navbar-brand me-2" href="../index.html">puppeteeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,13 +23,16 @@ call GraphRunner$new() directly; use StateGraph$compile()."><meta property="og:i
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/best-practices.html">Best Practices</a></li>
     <li><a class="dropdown-item" href="../articles/checkpointing.html">Checkpointing and Human-in-the-Loop</a></li>
     <li><a class="dropdown-item" href="../articles/custom-graphs.html">Building Custom Multi-Agent Graphs</a></li>
+    <li><a class="dropdown-item" href="../articles/event-streaming.html">Event Streaming</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with puppeteeR</a></li>
+    <li><a class="dropdown-item" href="../articles/human-in-the-loop.html">Human-in-the-Loop Interrupts</a></li>
     <li><a class="dropdown-item" href="../articles/retry-policy.html">Node Retry Policies</a></li>
     <li><a class="dropdown-item" href="../articles/state-and-reducers.html">State Channels and Reducers</a></li>
     <li><a class="dropdown-item" href="../articles/use-cases.html">Production Use Cases</a></li>
     <li><a class="dropdown-item" href="../articles/visualization.html">Visualizing Graphs</a></li>
     <li><a class="dropdown-item" href="../articles/workflows.html">Convenience Workflows</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/Arnold-Kakas/puppeteeR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -53,7 +56,9 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The final <a href="WorkflowState.html">WorkflowState</a> object.</p>
+    <p>The final <a href="WorkflowState.html">WorkflowState</a> object. If the run was paused at an
+interrupt point, the returned state reflects the graph at that moment;
+call <code>$invoke()</code> again with the same <code>thread_id</code> to resume.</p>
 <p>A <code>coro</code> generator yielding
 <code>list(node, state_snapshot, iteration)</code>.</p>
 <p>State snapshot (named list) or <code>NULL</code>.</p>
@@ -93,7 +98,9 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 <span>  <span class="va">agents</span>,</span>
 <span>  <span class="va">checkpointer</span>,</span>
 <span>  <span class="va">termination</span>,</span>
-<span>  output_channel <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  output_channel <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  interrupt_before <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  interrupt_after <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -132,6 +139,14 @@ call <code>GraphRunner$new()</code> directly; use <a href="StateGraph.html">Stat
 by <code>WorkflowState$output()</code> after <code>$invoke()</code>.</p></dd>
 
 
+<dt><code>interrupt_before</code></dt>
+<dd><p>Character vector of node names to pause before.</p></dd>
+
+
+<dt><code>interrupt_after</code></dt>
+<dd><p>Character vector of node names to pause after.</p></dd>
+
+
 </dl><p></p></div>
 </div>
 
@@ -149,9 +164,16 @@ by <code>WorkflowState$output()</code> after <code>$invoke()</code>.</p></dd>
 
 
 <dt><code>config</code></dt>
-<dd><p>Named list of run-time configuration:</p><ul><li><p><code>thread_id</code>: character, identifies this run for checkpointing.</p></li>
+<dd><p>Named list of run-time configuration:</p><ul><li><p><code>thread_id</code>: character, identifies this run for checkpointing.
+Required when the graph has <code>interrupt_before</code> or <code>interrupt_after</code>
+points.</p></li>
 <li><p><code>max_iterations</code>: integer, cycle guard (default 25).</p></li>
-<li><p><code>on_step</code>: <code>function(node_name, state)</code> callback after each node.</p></li>
+<li><p><code>on_step</code>: <code>function(node_name, state)</code> callback after each node
+(kept for backwards compatibility; prefer <code>on_event</code>).</p></li>
+<li><p><code>on_event</code>: <code>function(event)</code> callback fired around each node.
+<code>event</code> is a list with fields <code>type</code> (<code>"node_start"</code> or <code>"node_end"</code>),
+<code>node</code> (character), <code>iteration</code> (integer), and <code>data</code> (a list with
+field <code>updates</code> on <code>"node_end"</code>, <code>NULL</code> on <code>"node_start"</code>).</p></li>
 <li><p><code>verbose</code>: logical, print step info via <code>cli</code> (default <code>FALSE</code>).</p></li>
 </ul></dd>
 

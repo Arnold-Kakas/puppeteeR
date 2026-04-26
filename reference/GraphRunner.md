@@ -9,7 +9,9 @@ Do not call `GraphRunner$new()` directly; use
 
 The final
 [WorkflowState](https://arnold-kakas.github.io/puppeteeR/reference/WorkflowState.md)
-object.
+object. If the run was paused at an interrupt point, the returned state
+reflects the graph at that moment; call `$invoke()` again with the same
+`thread_id` to resume.
 
 A `coro` generator yielding `list(node, state_snapshot, iteration)`.
 
@@ -68,7 +70,9 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
       agents,
       checkpointer,
       termination,
-      output_channel = NULL
+      output_channel = NULL,
+      interrupt_before = character(),
+      interrupt_after = character()
     )
 
 #### Arguments
@@ -110,6 +114,14 @@ Initialise the runner. Called internally by `StateGraph$compile()`.
   Character or `NULL`. Name of the channel returned by
   `WorkflowState$output()` after `$invoke()`.
 
+- `interrupt_before`:
+
+  Character vector of node names to pause before.
+
+- `interrupt_after`:
+
+  Character vector of node names to pause after.
+
 ------------------------------------------------------------------------
 
 ### Method `invoke()`
@@ -131,10 +143,19 @@ Execute the graph and return the final state.
   Named list of run-time configuration:
 
   - `thread_id`: character, identifies this run for checkpointing.
+    Required when the graph has `interrupt_before` or `interrupt_after`
+    points.
 
   - `max_iterations`: integer, cycle guard (default 25).
 
-  - `on_step`: `function(node_name, state)` callback after each node.
+  - `on_step`: `function(node_name, state)` callback after each node
+    (kept for backwards compatibility; prefer `on_event`).
+
+  - `on_event`: `function(event)` callback fired around each node.
+    `event` is a list with fields `type` (`"node_start"` or
+    `"node_end"`), `node` (character), `iteration` (integer), and `data`
+    (a list with field `updates` on `"node_end"`, `NULL` on
+    `"node_start"`).
 
   - `verbose`: logical, print step info via `cli` (default `FALSE`).
 

@@ -10,7 +10,9 @@ compile(
   agents = list(),
   checkpointer = NULL,
   termination = NULL,
-  output_channel = NULL
+  output_channel = NULL,
+  interrupt_before = character(),
+  interrupt_after = character()
 )
 ```
 
@@ -30,7 +32,8 @@ compile(
 
   A
   [Checkpointer](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
-  or `NULL`.
+  or `NULL`. Required when `interrupt_before` or `interrupt_after` is
+  non-empty.
 
 - termination:
 
@@ -40,6 +43,18 @@ compile(
 
   Character or `NULL`. Channel returned by `WorkflowState$output()`
   after `$invoke()`.
+
+- interrupt_before:
+
+  Character vector of node names. Execution pauses before each listed
+  node and returns control to the caller. Requires a checkpointer and a
+  `thread_id` in `config`.
+
+- interrupt_after:
+
+  Character vector of node names. Execution pauses after each listed
+  node and returns control to the caller. Requires a checkpointer and a
+  `thread_id` in `config`.
 
 ## Value
 

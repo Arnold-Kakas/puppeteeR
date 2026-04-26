@@ -186,7 +186,9 @@ Validate and compile the graph into a
       agents = list(),
       checkpointer = NULL,
       termination = NULL,
-      output_channel = NULL
+      output_channel = NULL,
+      interrupt_before = character(),
+      interrupt_after = character()
     )
 
 #### Arguments
@@ -200,7 +202,8 @@ Validate and compile the graph into a
 
   A
   [Checkpointer](https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.md)
-  object or `NULL`.
+  object or `NULL`. Required when `interrupt_before` or
+  `interrupt_after` is non-empty.
 
 - `termination`:
 
@@ -213,6 +216,16 @@ Validate and compile the graph into a
   Character or `NULL`. The channel whose value is returned by
   `WorkflowState$output()`. If `NULL`, `$output()` will error unless set
   by a workflow constructor.
+
+- `interrupt_before`:
+
+  Character vector of node names. Execution pauses **before** each
+  listed node and returns control to the caller.
+
+- `interrupt_after`:
+
+  Character vector of node names. Execution pauses **after** each listed
+  node and returns control to the caller.
 
 ------------------------------------------------------------------------
 

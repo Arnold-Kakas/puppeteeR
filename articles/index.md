@@ -8,8 +8,12 @@
   Human-in-the-Loop](https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.md):
 - [Building Custom Multi-Agent
   Graphs](https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.md):
+- [Event
+  Streaming](https://arnold-kakas.github.io/puppeteeR/articles/event-streaming.md):
 - [Getting Started with
   puppeteeR](https://arnold-kakas.github.io/puppeteeR/articles/getting-started.md):
+- [Human-in-the-Loop
+  Interrupts](https://arnold-kakas.github.io/puppeteeR/articles/human-in-the-loop.md):
 - [Node Retry
   Policies](https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.md):
 - [State Channels and

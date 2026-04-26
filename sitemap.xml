@@ -5,7 +5,9 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/best-practices.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/checkpointing.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/custom-graphs.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/articles/event-streaming.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/getting-started.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/articles/human-in-the-loop.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/index.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/retry-policy.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/state-and-reducers.html</loc></url>
@@ -14,6 +16,7 @@
 <url><loc>https://arnold-kakas.github.io/puppeteeR/articles/workflows.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/authors.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/index.html</loc></url>
+<url><loc>https://arnold-kakas.github.io/puppeteeR/news/index.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/Agent.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/Checkpointer.html</loc></url>
 <url><loc>https://arnold-kakas.github.io/puppeteeR/reference/END.html</loc></url>
